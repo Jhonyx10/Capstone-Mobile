@@ -15,7 +15,7 @@ import useAppStore from "../../store/useAppStore";
 
 // ✅ Use a single token consistently
 const MAPBOX_TOKEN =
-  "pk.eyJ1Ijoiam95MTQzIiwiYSI6ImNtZTBxNmp5azA3eDAyc3B2ZDJ0MzA2bzIifQ.3cAGH461ddRycUmezu3INQ";
+  "";
 
 Mapbox.setAccessToken(MAPBOX_TOKEN);
 
