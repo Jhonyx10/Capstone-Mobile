@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009252954913",
+    "project_id": "bpat-mobile",
+    "storage_bucket": "bpat-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009252954913:android:fb0b672a88bff3f5868460",
+        "android_client_info": {
+          "package_name": "com.bpatmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaC0VAHLNb5DljRFte-qNVLUD6JVNwQ6o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
