@@ -9,3 +9,5 @@ export type Location = {
     landmark?: string;
     zone?: Zone;
 }
+
+export type CreateLocation = Omit<Location,"id">

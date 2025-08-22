@@ -14,6 +14,7 @@ import CameraModal from "./components/CameraModal";
 import ReportDetails from "./components/reports/ReportDetails";
 import ReportViolatorsList from "./components/reports/ReportViolatorsList";
 import MapScreen from "./authScreens/MapScreen";
+import LocationForm from "./components/reports/LocationForm";
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -31,6 +32,7 @@ export type RootStackParamList = {
   report_details: {id: number};
   violators_list: undefined;
   map: undefined;
+  location_form: undefined;
 };
 
 const AuthTabs = () => {
@@ -86,6 +88,12 @@ const Navigation = () => {
                       options={{
                         presentation: 'modal',
                         animation: 'slide_from_right'
+                        }}
+                    />
+                    <Stack.Screen name="location_form" component={LocationForm}
+                      options={{
+                        presentation: 'modal',
+                        animation: 'fade_from_bottom'
                         }}
                     />
             </Stack.Navigator>

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import useAppStore from "../../store/useAppStore";
-import { getLocations } from "../../util/Location";
+import { getLocations } from "../../util/getLocation";
 
 const useLocations = () => {
     const { base_url, token } = useAppStore()

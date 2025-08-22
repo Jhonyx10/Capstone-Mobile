@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Image } from "react-native"
 import { useQuery } from "@tanstack/react-query"
-import { getReportViolators } from "../../../util/ReportViolators"
+import { getReportViolators } from "../../../util/getReportViolators"
 import useAppStore from "../../../store/useAppStore"
 
 interface ReportViolatorsProps {

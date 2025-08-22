@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import useAppStore from "../../store/useAppStore";
-import { getZones } from "../../util/Zone";
+import { getZones } from "../../util/getZone";
 
 const useZones = () => {
     const { token, base_url } = useAppStore();

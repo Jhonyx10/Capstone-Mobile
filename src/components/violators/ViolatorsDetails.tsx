@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, StyleSheet, Image, ActivityIndicator, TouchableOpacity } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { violatorsDetails } from "../../../util/ViolatorsDetails";
+import { violatorsDetails } from "../../../util/getViolatorsDetails";
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../../Navigation";
 import useAppStore from "../../../store/useAppStore";

@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native"
-import { getViolators } from "../../../util/Violators"
+import { getViolators } from "../../../util/getViolators"
 import { useQuery } from "@tanstack/react-query"
 import useAppStore from "../../../store/useAppStore"
 import { Violator } from "../../types/ViolatorType"

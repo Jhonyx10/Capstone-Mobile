@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import useAppStore from '../../../store/useAppStore';
 import { useQuery } from '@tanstack/react-query';
-import { getReports } from '../../../util/Report';
+import { getReports } from '../../../util/getReport';
 import { Report } from '../../types/ReportType';
 import { useNavigation } from "@react-navigation/native";
 import { useEffect } from 'react';

@@ -27,7 +27,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../Navigation";
 import usePhotoStore from "../../../store/usePhotoStore";
 import { useMutation } from "@tanstack/react-query";
-import { fileReport } from "../../../util/FileReport";
+import { fileReport } from "../../../util/postFileReport";
 import { useQueryClient } from "@tanstack/react-query";
 import { Evidence } from "../../types/Evidence";
 import { FileReport } from "../../types/FileReport";
@@ -100,6 +100,7 @@ const ReportForm = () => {
       clearEvidence();
       clearInvolveViolator();
       queryClient.invalidateQueries({ queryKey: ['reports']})
+      queryClient.invalidateQueries({ queryKey: ['incident_locations'] })
       navigation.goBack();
     }
   })
@@ -251,7 +252,12 @@ const ReportForm = () => {
 
       {/* Location Picker */}
       <View style={styles.field}>
-        <Text style={styles.label}>Location</Text>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+          <Text style={styles.label}>Location</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('location_form')}>
+            <Text>Add Location</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={formData.location_id}

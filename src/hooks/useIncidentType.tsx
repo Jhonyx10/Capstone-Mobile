@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import useAppStore from "../../store/useAppStore";
-import { getIncidentTypes } from "../../util/IncidentType";
+import { getIncidentTypes } from "../../util/getIncidentType";
 
 const useIncidentType = () => {
     const { base_url, token } = useAppStore()

@@ -27,6 +27,7 @@ const CameraModal = () => {
 
   const setPhoto = usePhotoStore((state) => state.setPhoto);
   const addEvidence = usePhotoStore((state) => state.addEvidence);
+  const setLandmark = usePhotoStore((state) => state.setLandmark)
 
   useEffect(() => {
     if (!hasPermission) {
@@ -53,8 +54,13 @@ const CameraModal = () => {
         });
         console.log(photo.path)
         navigation.goBack();
+      }
 
-    }
+      if(status === 'landmark') {
+          setLandmark(photo.path)
+          navigation.goBack();
+        }
+      
     } catch (error) {
       console.error("Failed to take photo:", error);
     }

@@ -15,7 +15,7 @@ import useAppStore from "../../../store/useAppStore";
 import useZones from "../../hooks/useZone";
 import { Zone } from "../../types/ZoneType";
 import { useMutation } from "@tanstack/react-query";
-import { postViolator } from "../../../util/ViolatorProfile";
+import { postViolator } from "../../../util/postViolatorProfile";
 import { CreateViolator } from "../../types/ViolatorType";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";

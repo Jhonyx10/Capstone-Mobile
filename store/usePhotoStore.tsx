@@ -7,6 +7,8 @@ type PhotoState = {
   evidence: Evidence[];
   addEvidence: (evidence: Evidence) => void;
   clearEvidence: () => void;
+  landmark: string | null;
+  setLandmark: ( landmark: string | null) => void;
 };
 
 const usePhotoStore = create<PhotoState>((set) => ({
@@ -15,6 +17,8 @@ const usePhotoStore = create<PhotoState>((set) => ({
   evidence: [],
   addEvidence: (evidence) => set((state) => ({ evidence: [...state.evidence, evidence] })),
   clearEvidence: () => set({ evidence: [] }),
+  landmark: null,
+  setLandmark: (landmark) => set({landmark}),
 }));
 
 export default usePhotoStore;

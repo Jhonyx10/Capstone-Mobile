@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import useAppStore from "../../store/useAppStore";
-import { getCategories } from "../../util/Category";
+import { getCategories } from "../../util/getCategory";
 
 const useCategories = () => {
     const { token, base_url } = useAppStore()
