@@ -1,24 +1,15 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import Navigation from './src/Navigation';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import useEcho from './src/hooks/useEcho';
 const queryClient = new QueryClient();
 
 export default function App() {
-  const originalConsoleError = console.error;
-  console.error = (...args) => {
-    if (
-      typeof args[0] === "string" &&
-      args[0].includes("Mapbox [error] RNMBXMapView | Map load failed")
-    ) {
-      return; 
-    }
-    originalConsoleError(...args);
-  };
+  useEcho();
+
   return (
     <QueryClientProvider client={queryClient}>
-       <Navigation/>
+      <Navigation />
     </QueryClientProvider>
   );
 }
