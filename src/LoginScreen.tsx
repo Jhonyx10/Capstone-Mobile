@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "./Navigation"; 
 import useAppStore from '../store/useAppStore';
-import { useMutation } from '@tanstack/react-query';
+import { Mutation, useMutation } from '@tanstack/react-query';
 import { Login } from '../util/Login';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'login'>;
@@ -38,6 +38,7 @@ const LoginScreen = () => {
     LoginMutation.mutate({ base_url, name, password });
   };
 
+  
   return (
     <KeyboardAvoidingView  
       behavior={Platform.OS === "ios" ? "padding" : "height"} 
@@ -65,10 +66,16 @@ const LoginScreen = () => {
           style={styles.input}
         />
       </View>
-
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.btnTitle}>Login</Text>
-      </TouchableOpacity>
+     <TouchableOpacity 
+      style={styles.button} 
+      onPress={handleLogin} 
+      disabled={LoginMutation.isPending}
+    >
+      {LoginMutation.isPending 
+        ? <ActivityIndicator color="#fff" /> 
+        : <Text style={styles.btnTitle}>Login</Text>
+      }
+    </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 };

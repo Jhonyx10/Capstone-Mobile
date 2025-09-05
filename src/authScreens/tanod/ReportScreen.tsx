@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import ReportCard from '../components/reports/ReportCard';
+import ReportCard from '../../components/reports/ReportCard';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../Navigation"; 
+import { RootStackParamList } from "../../Navigation"; 
 
 const ReportScreen = () => {
     type ReportFormNavigationProp = NativeStackNavigationProp<RootStackParamList, 'report'>;
