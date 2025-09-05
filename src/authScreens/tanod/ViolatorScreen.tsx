@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../Navigation"; 
-import Violators from '../components/violators/Violators';
+import { RootStackParamList } from "../../Navigation"; 
+import Violators from '../../components/violators/Violators';
 
 const ViolatorScreen = () => {
     type ViolatorFormNavigationProp = NativeStackNavigationProp<RootStackParamList, 'violator'>;

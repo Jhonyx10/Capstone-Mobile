@@ -1,11 +1,11 @@
 import { StyleSheet, View, Text, Platform, PermissionsAndroid, TouchableOpacity } from "react-native";
 import { useState, useEffect } from "react";
 import Mapbox, { MapView } from "@rnmapbox/maps";
-import RequestResponseMap from "../components/maps/RequestResponseMap";
-import IncidentLocations from "../components/maps/IncidentHeatMap";
+import RequestResponseMap from "../../components/maps/RequestResponseMap";
+import IncidentLocations from "../../components/maps/IncidentHeatMap";
 
 const MAPBOX_TOKEN =
-  "";
+  "pk.eyJ1Ijoiam95MTQzIiwiYSI6ImNtZTBxNmp5azA3eDAyc3B2ZDJ0MzA2bzIifQ.3cAGH461ddRycUmezu3INQ";
 
 Mapbox.setAccessToken(MAPBOX_TOKEN);
 
