@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import Mapbox, { MapView } from "@rnmapbox/maps";
 import RequestResponseMap from "../../components/maps/RequestResponseMap";
 import IncidentLocations from "../../components/maps/IncidentHeatMap";
+import useTimer from "../../hooks/useTimer";
+import ResponseTimer from "../../components/ResponseTimer";
 
 const MAPBOX_TOKEN =
   "pk.eyJ1Ijoiam95MTQzIiwiYSI6ImNtZTBxNmp5azA3eDAyc3B2ZDJ0MzA2bzIifQ.3cAGH461ddRycUmezu3INQ";
@@ -12,6 +14,8 @@ Mapbox.setAccessToken(MAPBOX_TOKEN);
 const MapScreen = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isToggle, setIsToggle] = useState(false);
+  const { seconds, start, stop, reset } = useTimer();
+  const [currentDistance, setCurrentDistance] = useState(0);
 
   const toggle = () => {
     setIsToggle((prev) => !prev);
@@ -44,10 +48,20 @@ const MapScreen = () => {
         {isToggle ? (
           <IncidentLocations/>
         ) : (
-          <RequestResponseMap mapboxToken={MAPBOX_TOKEN} />
+          <>
+            <RequestResponseMap
+            mapboxToken={MAPBOX_TOKEN}
+            seconds={seconds}
+            currentDistance={currentDistance}
+            start={start}
+            stop={stop}
+            reset={reset}
+            setCurrentDistance={setCurrentDistance} 
+          />
+          </>
         )}
       </MapView>
-
+       <ResponseTimer seconds={seconds} currentDistance={currentDistance} />
       {/* Floating button */}
       <TouchableOpacity style={styles.toggleButton} onPress={toggle}>
         <Text style={styles.toggleText}>{isToggle ? "Show Route" : "Show HeatMap"}</Text>

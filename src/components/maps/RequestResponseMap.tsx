@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View } from "react-native";
+import { View} from "react-native";
 import Mapbox, {
   UserLocation,
   Camera,
@@ -12,9 +12,20 @@ import getRequestResponse from "../../hooks/useRequestResponse";
 import useAppStore from "../../../store/useAppStore";
 import useResponseStore from "../../../store/useResponseStore";
 import axios from "axios";
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../Navigation"; 
+
+type ReportFormNavigationProp = NativeStackNavigationProp<RootStackParamList, 'report'>;
 
 interface Props {
   mapboxToken: string;
+  seconds: number;
+  currentDistance: number;
+  setCurrentDistance: React.Dispatch<React.SetStateAction<number>>;
+  start: () => void;
+  stop: () => void;
+  reset: () => void;
 }
 
 interface SelectedDestination {
@@ -22,7 +33,7 @@ interface SelectedDestination {
   request_id: number;
 }
 
-// 📏 Haversine distance function (in km)
+// Haversine distance function (in km)
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -38,13 +49,14 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
   return R * c; // Distance in km
 }
 
-const RequestResponseMap = ({ mapboxToken }: Props) => {
+const RequestResponseMap = ({ mapboxToken, seconds,  setCurrentDistance, start, stop, reset }: Props) => {
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
   const [route, setRoute] = useState<FeatureCollection<LineString> | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<SelectedDestination | null>(null);
   const { setDistance, setResponseTime } = useResponseStore()
   const { user, token, base_url } = useAppStore();
   const { data } = getRequestResponse();
+  const navigation = useNavigation<ReportFormNavigationProp>();
 
   // 🚘 Update route whenever user moves or destination changes
   useEffect(() => {
@@ -58,6 +70,13 @@ const RequestResponseMap = ({ mapboxToken }: Props) => {
         const json = await res.json();
 
         if (json.routes && json.routes.length > 0) {
+           const routeData = json.routes[0];
+        
+        // ✅ Fixed total distance of the route in KM
+        const routeDistance = parseFloat((routeData.distance / 1000).toFixed(2));
+        console.log("📏 Total route distance:", routeDistance, "km");
+        setDistance(routeDistance)
+
           setRoute({
             type: "FeatureCollection",
             features: [
@@ -80,7 +99,6 @@ const RequestResponseMap = ({ mapboxToken }: Props) => {
   // 📡 Stream Tanod location continuously
   useEffect(() => {
     if (!user?.id || !selectedDestination) return;
-
     let subscription: any;
 
     async function startStreaming() {
@@ -107,9 +125,19 @@ const RequestResponseMap = ({ mapboxToken }: Props) => {
             `📏 Distance to Request ${selectedDestination.request_id}: ${distance.toFixed(2)} km`
           );
           console.log(distance.toFixed(2))
-          setDistance(distance)
-        }
+          console.log(`Timer ${seconds}`)
+          setCurrentDistance(distance)
 
+          if (distance <= 0.5) {
+            console.log("✅ Arrived at request, stopping timer & streaming...");
+            stop();
+            setResponseTime(seconds);
+            navigation.navigate('report_form')
+            if (subscription) subscription.remove();
+            Mapbox.locationManager.stop();
+            return; // exit early
+          }
+        }
         // Send Tanod location to backend -> triggers broadcast
         axios.post(
           `${base_url}update-location`,
@@ -166,17 +194,19 @@ const RequestResponseMap = ({ mapboxToken }: Props) => {
             title={`Request ${item.id}`}
             coordinate={[item.longitude, item.latitude]}
             anchor={{ x: 0.5, y: 0.5 }}
-            onSelected={() =>
-              setSelectedDestination({
+            onSelected={() => {
+              reset();
+              start();
+             setSelectedDestination({
                 coords: [item.longitude, item.latitude],
                 request_id: item.id,
               })
-            }
+            }}
           >
             <View
               style={{
-                height: 40,
-                width: 40,
+                height: 20,
+                width: 20,
                 borderRadius: 20,
                 backgroundColor: "red",
                 borderWidth: 2,

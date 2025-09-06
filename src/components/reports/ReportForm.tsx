@@ -69,7 +69,7 @@ const ReportForm = () => {
     time: "",
     location_id: "",
     report_description: "",
-    user_id: user.id,
+    user_id: user?.id,
     evidence: [],
     violators: [],
   });
@@ -93,7 +93,7 @@ const ReportForm = () => {
         time: "",
         location_id: "",
         report_description: "",
-        user_id: user.id,
+        user_id: user?.id,
         evidence: [],
         violators: [],
       });

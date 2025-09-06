@@ -2,14 +2,14 @@ import { create } from 'zustand';
 
 interface ResponseState {
   distance: number;
-  responseTime: string;
+  responseTime: number;
   setDistance: (distance: number) => void;
-  setResponseTime: (responseTime: string) => void;
+  setResponseTime: (responseTime: number) => void;
 }
 
 const useResponseStore = create<ResponseState>((set) => ({
   distance: 0,
-  responseTime: "",
+  responseTime: 0,
   setDistance: (distance) => set({ distance }),
   setResponseTime: (responseTime) => set({ responseTime }),
 }));
