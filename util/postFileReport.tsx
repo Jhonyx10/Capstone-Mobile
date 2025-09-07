@@ -34,6 +34,16 @@ export const fileReport = async ({ base_url, token, formData }: FileReportParams
       data.append(`violator_id[${index}]`, String(v.id));
     });
 
+  if (formData.request_id !== null && formData.request_id !== undefined) {
+    data.append("request_id", String(formData.request_id));
+  }
+  if (formData.distance !== null && formData.distance !== undefined) {
+    data.append("distance", String(formData.distance));
+  }
+  if (formData.response_time !== null && formData.response_time !== undefined) {
+    data.append("response_time", String(formData.response_time));
+  }
+
     const response = await axios.post(`${base_url}file-report`, data, {
       headers: {
         Authorization: `Bearer ${token}`,

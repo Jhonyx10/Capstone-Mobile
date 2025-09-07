@@ -12,12 +12,14 @@ interface AppState {
   violators: Violator[];
   base_url: string;
   status: boolean;
+  currentLocation: { latitude: number; longitude: number } | null;
   setLogin: (login: boolean) => void;
   setToken: (token: string) => Promise<void>;
   setUser: (user: User) => void;
   setReport: (reports: Report[]) => void;
   setViolators: (Violators: Violator[]) => void;
   setStatus: (status: boolean) => void;
+  setCurrentLocation: (coords: { latitude: number; longitude: number }) => void;
 }
 
 const useAppStore = create<AppState>((set) => ({
@@ -28,6 +30,7 @@ const useAppStore = create<AppState>((set) => ({
   reports: [],
   violators: [],
   base_url: 'http://10.223.200.34:8080/api/',
+  currentLocation: null,
   setLogin: (login) => set({ login }),
   setStatus: (status) => set({ status}),
    setToken: async (token) => {
@@ -37,6 +40,7 @@ const useAppStore = create<AppState>((set) => ({
   setUser: (user) => set({ user }),
   setReport: (reports) => set({reports}),
   setViolators: (violators) => set({violators}),
+  setCurrentLocation: (coords) => set({ currentLocation: coords }),
 }));
 
 export default useAppStore;

@@ -3,11 +3,10 @@ import { useState } from "react";
 import Map from "../../components/maps/RequestLocation";
 import RequestForm from "../../components/request/RequestForm";
 import useAppStore from "../../../store/useAppStore";
-import ResponseTracker from "../../components/maps/ResponseTracker";
 
 const Home = () => {
   const [userCoords, setUserCoords] = useState<[number, number] | null>(null);
-  const { status, user } = useAppStore();
+  const { user } = useAppStore();
 
   return (
     <View style={styles.container}>
@@ -18,10 +17,6 @@ const Home = () => {
         </Text>
       )} */}
        <RequestForm userCoords={userCoords} />
-
-      {status && user?.id !== undefined && (
-        <ResponseTracker requestId={user.id} />
-      )}
     </View>
   );
 };

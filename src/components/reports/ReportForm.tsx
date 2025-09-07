@@ -26,6 +26,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../Navigation";
 import usePhotoStore from "../../../store/usePhotoStore";
+import useResponseStore from "../../../store/useResponseStore";
 import { useMutation } from "@tanstack/react-query";
 import { fileReport } from "../../../util/postFileReport";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,6 +42,9 @@ type CameraScreenNavigationProp = NativeStackNavigationProp<
 
 const ReportForm = () => {
   const { user, token, base_url } = useAppStore();
+  const { distance, responseTime, requestId,
+          setDistance, setResponseTime, setRequestId, resetNavigation
+        } = useResponseStore();
   const { involveViolator, clearInvolveViolator } = useInvolveViolator();
   const { data: categories } = useCategories();
   const { data: incidentTypes } = useIncidentType();
@@ -63,6 +67,9 @@ const ReportForm = () => {
     user_id: number | undefined;
     evidence: Evidence[];
     violators: Violator[];
+    request_id: number | null;
+    distance: number | null;
+    response_time: number | null;
   }>({
     incident_type_id: "",
     date: "",
@@ -72,6 +79,9 @@ const ReportForm = () => {
     user_id: user?.id,
     evidence: [],
     violators: [],
+    request_id: requestId,
+    distance: distance,
+    response_time: responseTime
   });
 
 
@@ -96,11 +106,19 @@ const ReportForm = () => {
         user_id: user?.id,
         evidence: [],
         violators: [],
+        request_id: null,
+        distance: null,
+        response_time: null,
       });
       clearEvidence();
       clearInvolveViolator();
+      setDistance(0)
+      setResponseTime(0)
+      setRequestId(null)
+      resetNavigation()
       queryClient.invalidateQueries({ queryKey: ['reports']})
       queryClient.invalidateQueries({ queryKey: ['incident_locations'] })
+      queryClient.invalidateQueries({queryKey: ['request']})
       navigation.goBack();
     }
   })
@@ -114,7 +132,10 @@ const ReportForm = () => {
       report_description: formData.report_description,
       user_id: formData.user_id,   
       evidence: evidence  ,
-      violators: involveViolator
+      violators: involveViolator,
+      request_id: requestId,
+      distance: distance,
+      response_time: responseTime
     }
      CreateReport.mutate({base_url, token, formData: payload});
   }
@@ -173,6 +194,9 @@ const ReportForm = () => {
         <Text style={styles.subHeader}>
           Fill out the form below to report an incident
         </Text>
+        <Text>Distance:{distance}</Text>
+        <Text>Response Time: {responseTime}</Text>
+        <Text>Request Id: {requestId}</Text>
       </View>
 
       {/* Category Picker */}

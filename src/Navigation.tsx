@@ -45,7 +45,7 @@ const AuthTabs = () => {
   const { user} = useAppStore();
   return (
     <Tabs.Navigator screenOptions={{ headerShown: false }}>
-      {user.role != 'resident' ? (
+      {user?.role != 'resident' ? (
         <>
           <Tabs.Screen name="home" component={HomeScreen} />
           <Tabs.Screen name="map" component={MapScreen} />
