@@ -11,14 +11,21 @@ import notifee, { AndroidImportance } from '@notifee/react-native';
 import { name as appName } from './app.json';
 
 messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('FCM (Background/Killed):', remoteMessage);
-  if (remoteMessage.notification?.body) {
-    await notifee.displayNotification({
-      title: remoteMessage.notification.title,
-      body: remoteMessage.notification.body,
-      android: { channelId: 'messages', importance: AndroidImportance.HIGH },
-    });
-  }
+  console.log('📩 Background/Killed Message:', remoteMessage);
+
+  const title = remoteMessage.data?.title ?? 'Notification';
+  const body = remoteMessage.data?.body ?? 'You have a new message';
+
+  await notifee.displayNotification({
+    title,
+    body,
+    android: {
+      channelId: 'messages',
+      importance: AndroidImportance.HIGH,
+      pressAction: { id: 'default' },
+      smallIcon: 'ic_launcher', // ⚠️ must be a valid monochrome resource in android/app/src/main/res/drawable
+    },
+  });
 });
 
 AppRegistry.registerComponent(appName, () => App);

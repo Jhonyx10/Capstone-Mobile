@@ -1,3 +1,9 @@
+<<<<<<< HEAD:src/authScreens/ProfileScreen.tsx
+import { View, Text, Button } from 'react-native';
+import useAppStore from '../../store/useAppStore';
+import LogoutBtn from '../components/LogoutBtn';
+import { useColorScheme } from 'nativewind';
+=======
 import { View, Text, StyleSheet } from 'react-native';
 import useAppStore from '../../../store/useAppStore';
 import LogoutBtn from '../../components/LogoutBtn';
@@ -15,11 +21,26 @@ const ProfileScreen = () => {
     )
 }
 export default ProfileScreen;
+>>>>>>> f1fffad76b1cf7f5dabfae35bb2f9ccc3a55255b:src/authScreens/tanod/ProfileScreen.tsx
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    }
-})
+const ProfileScreen = () => {
+  const { user } = useAppStore();
+  const { toggleColorScheme } = useColorScheme();
+  return (
+    <View className="flex-1 items-center justify-center bg-[f2f2f2] dark:bg-slate-900">
+      <Text className="text-lg font-bold text-black dark:text-white">
+        Profile Page
+      </Text>
+      <Text className="text-black dark:text-gray-300">{user.name}</Text>
+      <Text className="text-black dark:text-gray-300">{user.email}</Text>
+      <Text className="text-black dark:text-gray-300">{user.role}</Text>
+      <LogoutBtn />
+
+      <View className="mt-4">
+        <Button title="Toggle Theme" onPress={toggleColorScheme} />
+      </View>
+    </View>
+  );
+};
+
+export default ProfileScreen;
