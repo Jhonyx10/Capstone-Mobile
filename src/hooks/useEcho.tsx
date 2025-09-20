@@ -4,6 +4,7 @@ import notifee, {
   AndroidCategory,
 } from '@notifee/react-native';
 import messaging from '@react-native-firebase/messaging';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 // 🔔 helper to display local notifications
 const displayNotification = async (title: string, body: string) => {
@@ -29,7 +30,11 @@ const displayNotification = async (title: string, body: string) => {
 export default function useEcho() {
   useEffect(() => {
     (async () => {
-      // ✅ Ask for notification permission
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+      }
       await notifee.requestPermission();
       await messaging().requestPermission();
 
