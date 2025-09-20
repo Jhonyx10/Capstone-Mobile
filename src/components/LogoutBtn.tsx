@@ -1,49 +1,74 @@
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { useMutation } from '@tanstack/react-query';
-import { Logout } from '../../util/Logout';
-import useAppStore from '../../store/useAppStore';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../Navigation';
+import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { useMutation } from "@tanstack/react-query";
+import { Logout } from "../../util/Logout";
+import useAppStore from "../../store/useAppStore";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../Navigation";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Mapbox from "@rnmapbox/maps";
+import echo from "../../echo";
 
 type LogoutScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  'welcome'
+  "welcome"
 >;
+
 const LogoutBtn = () => {
   const navigation = useNavigation<LogoutScreenNavigationProp>();
-  const setLogin = useAppStore(state => state.setLogin);
-  const setUser = useAppStore(state => state.setUser);
-  const setToken = useAppStore(state => state.setToken);
-  const base_url = useAppStore(state => state.base_url);
-  const { login } = useAppStore();
+  const setLogin = useAppStore((state) => state.setLogin);
+  const setUser = useAppStore((state) => state.setUser);
+  const setToken = useAppStore((state) => state.setToken);
+  const base_url = useAppStore((state) => state.base_url);
+  const token = useAppStore((state) => state.token); // ✅ grab token before stopping anything
+
+  const clearSession = async () => {
+    // Clear Zustand store
+    setLogin(false);
+    setUser({} as any);
+    setToken("");
+
+    // Clear AsyncStorage
+    await AsyncStorage.removeItem("token");
+    await AsyncStorage.removeItem("user");
+
+    // Navigate to welcome screen
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "welcome" as never }],
+    });
+  };
+
   const LogoutMutation = useMutation({
     mutationFn: Logout,
-    onSuccess: () => {
-      setLogin(false);
-      setUser({});
-      setToken('');
+    onSuccess: async () => {
+      await clearSession();
     },
-    onError: error => {
-      console.log(error);
+    onError: async (error) => {
+      console.log("Logout API failed:", error);
+      // Still clear session even if backend logout fails
+      await clearSession();
     },
   });
+
   return (
-    <>
-      <TouchableOpacity
-        onPress={() => {
-          LogoutMutation.mutate({
-            base_url,
-            token: useAppStore.getState().token,
-          });
-        }}
-        style={styles.button}
-      >
-        <Text style={styles.btnTitle}>Logout</Text>
-      </TouchableOpacity>
-    </>
+    <TouchableOpacity
+      onPress={async () => {
+        // stop streaming first
+        Mapbox.locationManager.stop();
+        echo.disconnect();
+
+        // ✅ call logout with saved token
+        LogoutMutation.mutate({ base_url, token });
+      }}
+      style={styles.button}
+    >
+      <Text style={styles.btnTitle}>Logout</Text>
+    </TouchableOpacity>
   );
 };
+
+
 export default LogoutBtn;
 
 const styles = StyleSheet.create({
@@ -51,11 +76,13 @@ const styles = StyleSheet.create({
     width: 200,
     height: 50,
     borderRadius: 10,
-    backgroundColor: 'red',
+    backgroundColor: "red",
+    justifyContent: "center",
+    alignItems: "center",
   },
   btnTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFF',
+    fontWeight: "bold",
+    color: "#FFF",
   },
 });

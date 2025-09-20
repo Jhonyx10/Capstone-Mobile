@@ -9,38 +9,47 @@ interface AppState {
   login: boolean;
   onboarding: boolean;
   token: string;
-  user: User;
+  user: User | null;
   reports: Report[];
   violators: Violator[];
   base_url: string;
+  status: boolean;
+  currentLocation: { latitude: number; longitude: number } | null;
   setLogin: (login: boolean) => void;
   setOnboarding: (onboarding: boolean) => void;
   setToken: (token: string) => Promise<void>;
   setUser: (user: User) => void;
   setReport: (reports: Report[]) => void;
-  setViolators: (violators: Violator[]) => void;
+  setStatus: (status: boolean) => void;
+  setCurrentLocation: (coords: { latitude: number; longitude: number }) => void;
+
+ 
 }
 
 const useAppStore = create<AppState>()(
   persist(
     set => ({
       login: false,
+      status: false,
       onboarding: true,
       token: '',
-      user: {} as User,
+      user: null,
       reports: [],
       violators: [],
       base_url: 'http://192.168.1.36:8000/api/',
+      currentLocation: null,
       setLogin: login => set({ login }),
       setOnboarding: onboarding => set({ onboarding }),
       setToken: async token => {
         await AsyncStorage.setItem('token', token);
         set({ token });
       },
+      setStatus: (status) => set({ status}),
       setUser: user => set({ user }),
       setReport: reports => set({ reports }),
       setViolators: violators => set({ violators }),
-      map_styles: {
+      setCurrentLocation: (coords) => set({ currentLocation: coords }),
+       map_styles: {
         light: 'mapbox://styles/mapbox/streets-v12',
         dark: 'mapbox://styles/joy143/cmeuj7k3i00jl01rk90g792d5',
       },
@@ -59,5 +68,6 @@ const useAppStore = create<AppState>()(
     },
   ),
 );
+
 
 export default useAppStore;

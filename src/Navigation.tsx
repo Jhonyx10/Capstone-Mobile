@@ -1,23 +1,28 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import {
-  BottomTabNavigationOptions,
-  createBottomTabNavigator,
-} from '@react-navigation/bottom-tabs';
+
+
+import { createBottomTabNavigator, BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
+import useAppStore from '../store/useAppStore';
 import Welcome from './Welcome';
 import LoginScreen from './LoginScreen';
-import HomeScreen from './authScreens/HomeScreen';
-import ProfileScreen from './authScreens/ProfileScreen';
-import ReportScreen from './authScreens/ReportScreen';
-import ViolatorScreen from './authScreens/ViolatorScreen';
+import HomeScreen from './authScreens/tanod/HomeScreen';
+import ProfileScreen from './authScreens/tanod/ProfileScreen';
+import ReportScreen from './authScreens/tanod/ReportScreen';
+import ViolatorScreen from './authScreens/tanod/ViolatorScreen';
+import MapScreen from './authScreens/tanod/MapScreen';
+import Home from './authScreens/resident/HomeScreen';
+import Hotline from './authScreens/resident/Hotline';
+
 import CreateViolatorProfile from './components/violators/CreateViolatorProfile';
 import ReportForm from './components/reports/ReportForm';
 import ViolatorsDetails from './components/violators/ViolatorsDetails';
 import CameraModal from './components/CameraModal';
 import ReportDetails from './components/reports/ReportDetails';
 import ReportViolatorsList from './components/reports/ReportViolatorsList';
-import MapScreen from './authScreens/MapScreen';
+
 import LocationForm from './components/reports/LocationForm';
+import TanodTracker from './authScreens/resident/TanodTracker';
 import OnboardingScreen from './OnboardingScreen';
 import LottieView, { AnimationObject } from 'lottie-react-native';
 import { useRef, useEffect, useState } from 'react';
@@ -25,7 +30,8 @@ import { View, Text, StatusBar } from 'react-native';
 import { colorScheme, useColorScheme } from 'nativewind';
 import useAppStore from '../store/useAppStore';
 
-const Stack = createNativeStackNavigator();
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator();
 
 export type RootStackParamList = {
@@ -43,12 +49,38 @@ export type RootStackParamList = {
   violators_list: undefined;
   map: undefined;
   location_form: undefined;
+response_tracker: { requestId: number };
+  guest: undefined;
 };
+
 
 interface LottieIconProps {
   animationData: AnimationObject;
   focused: boolean;
 }
+
+const AuthTabs = () => {
+  const { user} = useAppStore();
+  return (
+    <Tabs.Navigator screenOptions={{ headerShown: false }}>
+      {user?.role != 'resident' ? (
+        <>
+          <Tabs.Screen name="home" component={HomeScreen} />
+          <Tabs.Screen name="map" component={MapScreen} />
+          <Tabs.Screen name="report" component={ReportScreen} />
+          <Tabs.Screen name="violator" component={ViolatorScreen} />
+          <Tabs.Screen name="profile" component={ProfileScreen} />
+        </>
+      ) : (
+        <>
+            <Tabs.Screen name="guest" component={Home} />
+            <Tabs.Screen name="hotline" component={Hotline} />
+        </>
+      )}
+    </Tabs.Navigator>
+  );
+};
+
 
 const LottieIcon: React.FC<LottieIconProps> = ({ animationData, focused }) => {
   const lottieRef = useRef<LottieView>(null);
@@ -254,6 +286,7 @@ const AuthTabs = () => {
 };
 
 const Navigation = () => {
+<<<<<<< HEAD
   const { colorScheme } = useColorScheme();
   const { onboarding, login } = useAppStore();
   return (
@@ -281,8 +314,6 @@ const Navigation = () => {
             <Stack.Screen name="login" component={LoginScreen} />
           </>
         )}
-
-        {/* application forms screens */}
         <Stack.Screen
           name="violator_form"
           component={CreateViolatorProfile}
@@ -334,6 +365,15 @@ const Navigation = () => {
         <Stack.Screen
           name="location_form"
           component={LocationForm}
+          options={{
+            presentation: 'modal',
+            animation: 'fade_from_bottom',
+          }}
+        />
+
+        <Stack.Screen
+          name="response_tracker"
+          component={TanodTracker}
           options={{
             presentation: 'modal',
             animation: 'fade_from_bottom',

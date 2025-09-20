@@ -1,8 +1,14 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+<<<<<<< HEAD:src/authScreens/ViolatorScreen.tsx
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
 import Violators from '../components/violators/Violators';
+=======
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../Navigation"; 
+import Violators from '../../components/violators/Violators';
+>>>>>>> f1fffad76b1cf7f5dabfae35bb2f9ccc3a55255b:src/authScreens/tanod/ViolatorScreen.tsx
 
 const ViolatorScreen = () => {
   type ViolatorFormNavigationProp = NativeStackNavigationProp<

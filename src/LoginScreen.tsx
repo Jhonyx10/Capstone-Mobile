@@ -6,13 +6,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ActivityIndicator
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
+
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './Navigation';
 import useAppStore from '../store/useAppStore';
-import { useMutation } from '@tanstack/react-query';
+import { Mutation, useMutation } from '@tanstack/react-query';
 import { Login } from '../util/Login';
 import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
@@ -65,6 +67,7 @@ const LoginScreen = () => {
     LoginMutation.mutate({ base_url, name, password });
   };
 
+
   useEffect(() => {
     // Password animation
     const passwordStart = setTimeout(() => {
@@ -103,6 +106,7 @@ const LoginScreen = () => {
       clearTimeout(eyesStart);
     };
   }, []);
+
 
   return (
     <KeyboardAvoidingView
@@ -256,12 +260,16 @@ const LoginScreen = () => {
           onPress={handleLogin}
           className="w-full mt-5 rounded-lg overflow-hidden"
           entering={FadeInUp.delay(500).duration(300).springify().damping(60)}
+          disabled={LoginMutation.isPending}
         >
           <LinearGradient
             colors={['#A9C46C', '#5D8736']}
             className="w-full p-4 rounded-lg items-center"
           >
-            <Text className="text-white text-base font-bold">Login</Text>
+            {LoginMutation.isPending 
+        ? <ActivityIndicator color="#fff" /> 
+        :  <Text className="text-white text-base font-bold">Login</Text>
+      }
           </LinearGradient>
         </AnimatedTouchable>
       </View>
@@ -280,7 +288,7 @@ const LoginScreen = () => {
           </Text>
         </Animated.View>
       )}
-    </KeyboardAvoidingView>
+
   );
 };
 

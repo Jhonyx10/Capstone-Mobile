@@ -1,7 +1,27 @@
+<<<<<<< HEAD:src/authScreens/ProfileScreen.tsx
 import { View, Text, Button } from 'react-native';
 import useAppStore from '../../store/useAppStore';
 import LogoutBtn from '../components/LogoutBtn';
 import { useColorScheme } from 'nativewind';
+=======
+import { View, Text, StyleSheet } from 'react-native';
+import useAppStore from '../../../store/useAppStore';
+import LogoutBtn from '../../components/LogoutBtn';
+const ProfileScreen = () => {
+    const { user } = useAppStore()
+    
+    return(
+        <View style={styles.container}>
+            <Text>Profile Page</Text>
+            <Text>{user?.name}</Text>
+            <Text>{user?.email}</Text>
+            <Text>{user?.role}</Text>
+            <LogoutBtn/>
+        </View>
+    )
+}
+export default ProfileScreen;
+>>>>>>> f1fffad76b1cf7f5dabfae35bb2f9ccc3a55255b:src/authScreens/tanod/ProfileScreen.tsx
 
 const ProfileScreen = () => {
   const { user } = useAppStore();

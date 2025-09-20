@@ -10,4 +10,7 @@ export type FileReport = {
   user_id: number | undefined;
   evidence: Evidence[]; 
   violators: Violator[];
+  request_id: number | null;
+  distance: number | null;
+  response_time: number | null;
 };

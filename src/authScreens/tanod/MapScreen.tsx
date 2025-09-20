@@ -1,3 +1,4 @@
+<<<<<<< HEAD:src/authScreens/MapScreen.tsx
 import {
   StyleSheet,
   View,
@@ -12,12 +13,26 @@ import RequestResponseMap from '../components/maps/RequestResponseMap';
 import IncidentLocations from '../components/maps/IncidentHeatMap';
 
 const MAPBOX_TOKEN = '';
+=======
+import { StyleSheet, View, Text, Platform, PermissionsAndroid, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import Mapbox, { MapView } from "@rnmapbox/maps";
+import RequestResponseMap from "../../components/maps/RequestResponseMap";
+import IncidentLocations from "../../components/maps/IncidentHeatMap";
+import useTimer from "../../hooks/useTimer";
+import ResponseTimer from "../../components/ResponseTimer";
+
+const MAPBOX_TOKEN =
+  "pk.eyJ1Ijoiam95MTQzIiwiYSI6ImNtZTBxNmp5azA3eDAyc3B2ZDJ0MzA2bzIifQ.3cAGH461ddRycUmezu3INQ";
+>>>>>>> f1fffad76b1cf7f5dabfae35bb2f9ccc3a55255b:src/authScreens/tanod/MapScreen.tsx
 
 Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 const MapScreen = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isToggle, setIsToggle] = useState(false);
+  const { seconds, start, stop, reset } = useTimer();
+  const [currentDistance, setCurrentDistance] = useState(0);
 
   const toggle = () => {
     setIsToggle(prev => !prev);
@@ -50,10 +65,20 @@ const MapScreen = () => {
         {isToggle ? (
           <IncidentLocations />
         ) : (
-          <RequestResponseMap mapboxToken={MAPBOX_TOKEN} />
+          <>
+            <RequestResponseMap
+            mapboxToken={MAPBOX_TOKEN}
+            seconds={seconds}
+            currentDistance={currentDistance}
+            start={start}
+            stop={stop}
+            reset={reset}
+            setCurrentDistance={setCurrentDistance} 
+          />
+          </>
         )}
       </MapView>
-
+       <ResponseTimer seconds={seconds} currentDistance={currentDistance} />
       {/* Floating button */}
       <TouchableOpacity style={styles.toggleButton} onPress={toggle}>
         <Text style={styles.toggleText}>

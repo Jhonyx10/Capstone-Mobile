@@ -1,9 +1,17 @@
+<<<<<<< HEAD:src/authScreens/ReportScreen.tsx
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, TouchableOpacity } from 'react-native';
 import ReportCard from '../components/reports/ReportCard';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Navigation';
+=======
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import ReportCard from '../../components/reports/ReportCard';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../../Navigation"; 
+>>>>>>> f1fffad76b1cf7f5dabfae35bb2f9ccc3a55255b:src/authScreens/tanod/ReportScreen.tsx
 
 const ReportScreen = () => {
   type ReportFormNavigationProp = NativeStackNavigationProp<
