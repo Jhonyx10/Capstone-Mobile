@@ -1,50 +1,189 @@
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Button, 
-  ScrollView, 
+import React from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
   TextInput,
   Image,
   TouchableOpacity,
-  Alert 
-} from "react-native";
-import { useState, useEffect } from "react";
-import { Picker } from "@react-native-picker/picker";
-import useCategories from "../../hooks/useCategory";
-import useIncidentType from "../../hooks/useIncidentType";
-import useZones from "../../hooks/useZone";
-import useLocations from "../../hooks/useLocations";
-import { Category } from "../../types/CategoryType";
-import { Zone } from "../../types/ZoneType";
-import { Location } from "../../types/LocationType";
-import { IncidentType } from "../../types/IncidentType";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
-import useAppStore from "../../../store/useAppStore";
-import { useCameraPermission } from "react-native-vision-camera";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../Navigation";
-import usePhotoStore from "../../../store/usePhotoStore";
-import useResponseStore from "../../../store/useResponseStore";
-import { useMutation } from "@tanstack/react-query";
-import { fileReport } from "../../../util/postFileReport";
-import { useQueryClient } from "@tanstack/react-query";
-import { Evidence } from "../../types/Evidence";
-import { FileReport } from "../../types/FileReport";
-import { Violator } from "../../types/ViolatorType";
-import useInvolveViolator from "../../../store/useInvolveViolatorState";
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState, useEffect } from 'react';
+import { useColorScheme } from 'nativewind';
+import useCategories from '../../hooks/useCategory';
+import useIncidentType from '../../hooks/useIncidentType';
+import useZones from '../../hooks/useZone';
+import useLocations from '../../hooks/useLocations';
+import { Category } from '../../types/CategoryType';
+import { Zone } from '../../types/ZoneType';
+import { Location } from '../../types/LocationType';
+import { IncidentType } from '../../types/IncidentType';
+import useAppStore from '../../../store/useAppStore';
+import { useCameraPermission } from 'react-native-vision-camera';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../Navigation';
+import usePhotoStore from '../../../store/usePhotoStore';
+import useResponseStore from '../../../store/useResponseStore';
+import { useMutation } from '@tanstack/react-query';
+import { fileReport } from '../../../util/postFileReport';
+import { useQueryClient } from '@tanstack/react-query';
+import { Evidence } from '../../types/Evidence';
+import { FileReport } from '../../types/FileReport';
+import { Violator } from '../../types/ViolatorType';
+import useInvolveViolator from '../../../store/useInvolveViolatorState';
+import Icon, { IconName } from '../Icon';
+import Enter from '../Enter';
+import { SelectField, DatePickerSheet, TimePickerSheet } from '../Pickers';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  "report_form"
+  'report_form'
 >;
 
+/* ---------- small UI pieces ---------- */
+
+// `index` sets the order the cards come in
+const Card = ({
+  title,
+  action,
+  index = 0,
+  children,
+}: {
+  title: string;
+  action?: React.ReactNode;
+  index?: number;
+  children: React.ReactNode;
+}) => (
+  <Enter
+    index={index}
+    className="mb-3 rounded-xl bg-white p-4 dark:bg-slate-800"
+  >
+    <View className="mb-3 flex-row items-center justify-between">
+      <Text className="text-[15px] font-bold text-gray-800 dark:text-white">
+        {title}
+      </Text>
+      {action}
+    </View>
+    {children}
+  </Enter>
+);
+
+const PickButton = ({
+  icon,
+  label,
+  placeholder,
+  value,
+  onPress,
+  quickOptions,
+}: {
+  icon: IconName;
+  label: string;
+  placeholder: string;
+  /** text to show once something is picked ('' = nothing picked yet) */
+  value: string;
+  onPress: () => void;
+  /** optional one-tap shortcuts shown under the button */
+  quickOptions?: { label: string; onPress: () => void }[];
+}) => {
+  const filled = Boolean(value);
+
+  return (
+    <View>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        className={`flex-row items-center rounded-xl border p-3 ${
+          filled
+            ? 'border-lime-600 bg-lime-50 dark:bg-lime-900/20'
+            : 'border-gray-300 bg-white dark:border-slate-600 dark:bg-slate-900'
+        }`}
+      >
+        <View
+          className={`h-10 w-10 items-center justify-center rounded-full ${
+            filled ? 'bg-lime-600' : 'bg-lime-100 dark:bg-lime-900/40'
+          }`}
+        >
+          <Icon
+            name={icon}
+            tone="lime"
+            color={filled ? '#FFFFFF' : undefined}
+            size={20}
+          />
+        </View>
+        <View className="ml-3 flex-1">
+          <Text className="text-[11px] text-gray-500 dark:text-gray-400">
+            {label}
+          </Text>
+          <Text
+            numberOfLines={1}
+            className={`text-base font-semibold ${
+              filled
+                ? 'text-gray-800 dark:text-white'
+                : 'text-gray-400 dark:text-slate-500'
+            }`}
+          >
+            {value || placeholder}
+          </Text>
+        </View>
+        <Icon name="chevron-right" tone="muted" size={18} />
+      </TouchableOpacity>
+
+      {quickOptions && quickOptions.length > 0 && (
+        <View className="mt-2 flex-row flex-wrap gap-2">
+          {quickOptions.map(option => (
+            <TouchableOpacity
+              key={option.label}
+              onPress={option.onPress}
+              activeOpacity={0.7}
+              className="rounded-full border border-lime-600 px-3 py-1"
+            >
+              <Text className="text-xs font-semibold text-lime-700 dark:text-lime-400">
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
+const pad = (n: number) => String(n).padStart(2, '0');
+// local date (toISOString() would shift the day for users ahead of UTC)
+const toLocalDate = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+// "2026-11-04" -> "Nov 4, 2026" (what the user sees; the form still stores YYYY-MM-DD)
+const formatDisplayDate = (iso: string) => {
+  const d = new Date(`${iso}T00:00:00`);
+  return isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+};
+
+/* ---------- screen ---------- */
+
 const ReportForm = () => {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   const { user, token, base_url } = useAppStore();
-  const { distance, responseTime, requestId,
-          setDistance, setResponseTime, setRequestId, resetNavigation
-        } = useResponseStore();
+  const {
+    distance,
+    responseTime,
+    requestId,
+    setDistance,
+    setResponseTime,
+    setRequestId,
+    resetNavigation,
+  } = useResponseStore();
   const { involveViolator, clearInvolveViolator } = useInvolveViolator();
   const { data: categories } = useCategories();
   const { data: incidentTypes } = useIncidentType();
@@ -53,10 +192,10 @@ const ReportForm = () => {
   const { hasPermission, requestPermission } = useCameraPermission();
   const navigation = useNavigation<CameraScreenNavigationProp>();
   const { evidence, clearEvidence } = usePhotoStore();
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
-  const [category, setCategory] = useState("");
-  const [zone, setZone] = useState("");
+  const [category, setCategory] = useState('');
+  const [zone, setZone] = useState('');
 
   const [formData, setFormData] = useState<{
     incident_type_id: string;
@@ -71,38 +210,37 @@ const ReportForm = () => {
     distance: number | null;
     response_time: number | null;
   }>({
-    incident_type_id: "",
-    date: "",
-    time: "",
-    location_id: "",
-    report_description: "",
+    incident_type_id: '',
+    date: '',
+    time: '',
+    location_id: '',
+    report_description: '',
     user_id: user?.id,
     evidence: [],
     violators: [],
     request_id: requestId,
     distance: distance,
-    response_time: responseTime
+    response_time: responseTime,
   });
 
-
   useEffect(() => {
-  setFormData((prev) => ({
-    ...prev,
-    evidence: evidence, 
-    violators: involveViolator
-  }));
-}, [evidence, involveViolator]);
+    setFormData(prev => ({
+      ...prev,
+      evidence: evidence,
+      violators: involveViolator,
+    }));
+  }, [evidence, involveViolator]);
 
   const CreateReport = useMutation({
     mutationFn: fileReport,
     onSuccess: () => {
-      Alert.alert("Success")
+      Alert.alert('Report submitted', 'Your incident report was filed.');
       setFormData({
-        incident_type_id: "",
-        date: "",
-        time: "",
-        location_id: "",
-        report_description: "",
+        incident_type_id: '',
+        date: '',
+        time: '',
+        location_id: '',
+        report_description: '',
         user_id: user?.id,
         evidence: [],
         violators: [],
@@ -112,33 +250,52 @@ const ReportForm = () => {
       });
       clearEvidence();
       clearInvolveViolator();
-      setDistance(0)
-      setResponseTime(0)
-      setRequestId(null)
-      resetNavigation()
-      queryClient.invalidateQueries({ queryKey: ['reports']})
-      queryClient.invalidateQueries({ queryKey: ['incident_locations'] })
-      queryClient.invalidateQueries({queryKey: ['request']})
+      setDistance(0);
+      setResponseTime(0);
+      setRequestId(null);
+      resetNavigation();
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['incident_locations'] });
+      queryClient.invalidateQueries({ queryKey: ['request'] });
       navigation.goBack();
-    }
-  })
+    },
+    onError: (error: any) => {
+      Alert.alert(
+        'Could not submit',
+        error?.message ?? 'Something went wrong. Please try again.',
+      );
+    },
+  });
 
   const handleSubmit = () => {
+    if (
+      !formData.incident_type_id ||
+      !formData.location_id ||
+      !formData.date ||
+      !formData.time
+    ) {
+      Alert.alert(
+        'Incomplete form',
+        'Please choose the incident type, location, date and time.',
+      );
+      return;
+    }
+
     const payload: FileReport = {
       incident_type_id: formData.incident_type_id,
       date: formData.date,
       time: formData.time,
       location_id: formData.location_id,
       report_description: formData.report_description,
-      user_id: formData.user_id,   
-      evidence: evidence  ,
+      user_id: formData.user_id,
+      evidence: evidence,
       violators: involveViolator,
       request_id: requestId,
       distance: distance,
-      response_time: responseTime
-    }
-     CreateReport.mutate({base_url, token, formData: payload});
-  }
+      response_time: responseTime,
+    };
+    CreateReport.mutate({ base_url, token, formData: payload });
+  };
 
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
@@ -148,369 +305,369 @@ const ReportForm = () => {
   const showTimePicker = () => setTimePickerVisibility(true);
   const hideTimePicker = () => setTimePickerVisibility(false);
 
-  const handleConfirmDate = (selectedDate: Date) => {
-    setFormData((prev) => ({
+  // shortcuts used by the quick options
+  const setDateTo = (d: Date) =>
+    setFormData(prev => ({ ...prev, date: toLocalDate(d) }));
+  const setTimeTo = (d: Date) =>
+    setFormData(prev => ({
       ...prev,
-      date: selectedDate.toISOString().split("T")[0],
+      time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }));
+
+  const handleConfirmDate = (selectedDate: Date) => {
+    setDateTo(selectedDate);
     hideDatePicker();
   };
 
   const handleConfirmTime = (selectedTime: Date) => {
-    setFormData((prev) => ({
-      ...prev,
-      time: selectedTime.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    }));
+    setTimeTo(selectedTime);
     hideTimePicker();
   };
 
   const filterIncident = incidentTypes?.filter(
-    (incident: IncidentType) =>
-      incident?.category_id?.toString() === category
+    (incident: IncidentType) => incident?.category_id?.toString() === category,
   );
 
   const filterLocations = locations?.filter(
-    (location: Location) => location?.zone_id?.toString() === zone
+    (location: Location) => location?.zone_id?.toString() === zone,
   );
 
-   const handleOpenCamera = async () => {
+  const handleOpenCamera = async () => {
     if (!hasPermission) {
       const granted = await requestPermission();
       if (!granted) return;
     }
-     navigation.navigate("camera", { status: "evidence" });
+    navigation.navigate('camera', { status: 'evidence' });
   };
 
+  const placeholderColor = isDark ? '#94A3B8' : '#9CA3AF';
+
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
+    <SafeAreaView
+      className="flex-1 bg-[#f4f4f4] dark:bg-slate-900"
+      edges={['top']}
     >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>📋 Incident Report</Text>
-        <Text style={styles.subHeader}>
-          Fill out the form below to report an incident
-        </Text>
-        <Text>Distance:{distance}</Text>
-        <Text>Response Time: {responseTime}</Text>
-        <Text>Request Id: {requestId}</Text>
-      </View>
+      {/* Header */}
+      <Enter
+        from="top"
+        className="flex-row items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
+      >
+        <View className="flex-1 pr-3">
+          <Text className="text-xl font-bold text-gray-800 dark:text-white">
+            File a report
+          </Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-400">
+            Fill out the form to report an incident
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          className="h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-700"
+        >
+          <Icon name="x" tone="neutral" size={18} />
+        </TouchableOpacity>
+      </Enter>
 
-      {/* Category Picker */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Incident Category</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={category}
-            onValueChange={(value) => setCategory(value)}
-            style={styles.picker}
+      <ScrollView
+        contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Linked response request */}
+        {requestId !== null && requestId !== undefined && (
+          <Enter
+            index={0}
+            className="mb-3 flex-row items-center rounded-xl border border-lime-600 bg-lime-50 p-3 dark:bg-lime-900/20"
           >
-            <Picker.Item
-              label="Select Incident Category"
-              color="#888"
-              value=""
-            />
-            {categories?.map((cat: Category) => (
-              <Picker.Item
-                key={cat.id}
-                value={cat.id.toString()}
-                label={cat.category_name}
-                color="#000"
-              />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      {/* Incident Type Picker */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Incident Type</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={formData.incident_type_id}
-            onValueChange={(value) =>
-              setFormData((prev) => ({
-                ...prev,
-                incident_type_id: value,
-              }))
-            }
-            style={styles.picker}
-          >
-            <Picker.Item label="Select Incident Type" color="#888" value="" />
-            {filterIncident?.map((incident: IncidentType) => (
-              <Picker.Item
-                key={incident.id}
-                value={incident.id.toString()}
-                label={incident.incident_name}
-                color="#000"
-              />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      {/* Zone Picker */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Zone</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={zone}
-            onValueChange={(value) => setZone(value)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Select Zone" color="#888" value="" />
-            {zones?.map((zone: Zone) => (
-              <Picker.Item
-                key={zone.id}
-                value={zone.id.toString()}
-                label={zone.zone_name}
-                color="#000"
-              />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      {/* Location Picker */}
-      <View style={styles.field}>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
-          <Text style={styles.label}>Location</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('location_form')}>
-            <Text>Add Location</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={formData.location_id}
-            onValueChange={(value) =>
-              setFormData((prev) => ({
-                ...prev,
-                location_id: value,
-              }))
-            }
-            style={styles.picker}
-          >
-            <Picker.Item label="Select Location" color="#888" value="" />
-            {filterLocations?.map((location: Location) => (
-              <Picker.Item
-                key={location.id}
-                value={location.id.toString()}
-                label={location.location_name}
-                color="#000"
-              />
-            ))}
-          </Picker>
-        </View>
-      </View>
-
-      {/* Date Picker */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Date</Text>
-        <Button title="📅 Pick a Date" onPress={showDatePicker} color="#007BFF" />
-        <Text style={styles.value}>
-          {formData.date ? formData.date : "No date selected"}
-        </Text>
-        <DateTimePickerModal
-          isVisible={isDatePickerVisible}
-          mode="date"
-          onConfirm={handleConfirmDate}
-          onCancel={hideDatePicker}
-        />
-      </View>
-
-      {/* Time Picker */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Time</Text>
-        <Button title="⏰ Pick a Time" onPress={showTimePicker} color="#007BFF" />
-        <Text style={styles.value}>
-          {formData.time ? formData.time : "No time selected"}
-        </Text>
-        <DateTimePickerModal
-          isVisible={isTimePickerVisible}
-          mode="time"
-          onConfirm={handleConfirmTime}
-          onCancel={hideTimePicker}
-        />
-      </View>
-        <View>
-          <TouchableOpacity onPress={() => navigation.navigate('violators_list')}>
-            <Text>Add Violators</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.evidence}>
-       {involveViolator.length > 0 ? (
-          involveViolator.map((v, i) => (
-            <View key={i}>
-              {v.photo ? (
-                <Image source={{ uri: v.photo }} style={styles.photo} />
-              ) : (
-                <View style={[styles.photo, { justifyContent: "center", alignItems: "center" }]}>
-                  <Text style={{ color: "#999" }}>No Photo</Text>
-                </View>
-              )}
-              <Text>{v.last_name}</Text>
-              <Text>{v.first_name}</Text>
-              <Text>{v.age}</Text>
-              <Text>{v?.zone?.zone_name}, {v.address}</Text>
+            <View className="mr-3">
+              <Icon name="alert-circle" tone="lime" size={22} />
             </View>
-          ))
-        ) : (
-          <Text>No Involved Violator</Text>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-lime-800 dark:text-lime-300">
+                Linked to a response request
+              </Text>
+              <Text className="text-xs text-lime-700 dark:text-lime-400">
+                Distance: {distance} · Response time: {responseTime}
+              </Text>
+            </View>
+          </Enter>
         )}
-        </View>
 
-      {/* Report Description */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Report Description</Text>
-        <TextInput
-          placeholder="Write a detailed report description..."
-          value={formData.report_description}
-          onChangeText={(text) =>
-            setFormData((prev) => ({
-              ...prev,
-              report_description: text,
-            }))
-          }
-          style={styles.textArea}
-          multiline
-        />
-      </View>
-          <TouchableOpacity style={styles.deleteBtn}
-            onPress={() => clearEvidence()}
-          >
-            <Text style={styles.deleteBtnText}>Clear</Text>
-          </TouchableOpacity>
-     <View style={styles.evidence}>
-       {evidence.length > 0 ? (
-        evidence.map((img, i) => (
-          <>
-          <Image
-             key={i}
-              source={{ uri: "file://" + img.incident_evidence }}
-              style={{ width: 100, height: 100, margin: 5 }}
+        {/* Incident */}
+        <Card title="Incident" index={0}>
+          <SelectField
+            label="Category"
+            value={category}
+            onChange={value => {
+              setCategory(value);
+              // the type list depends on the category
+              setFormData(prev => ({ ...prev, incident_type_id: '' }));
+            }}
+            placeholder="Select incident category"
+            items={
+              categories?.map((cat: Category) => ({
+                label: cat.category_name,
+                value: cat.id.toString(),
+              })) ?? []
+            }
           />
-          </>
-        ))
-      ) : (
-        <Text>No evidence photos yet</Text>
-      )}
-     </View>
-      <TouchableOpacity onPress={handleOpenCamera} style={styles.button}>
-        <Text style={styles.buttonText}>Open Camera</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.btnText}>Submit Report</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <SelectField
+            label="Type"
+            value={formData.incident_type_id}
+            onChange={value =>
+              setFormData(prev => ({ ...prev, incident_type_id: value }))
+            }
+            placeholder={
+              category ? 'Select incident type' : 'Choose a category first'
+            }
+            items={
+              filterIncident?.map((incident: IncidentType) => ({
+                label: incident.incident_name,
+                value: incident.id.toString(),
+              })) ?? []
+            }
+            enabled={Boolean(category)}
+          />
+        </Card>
+
+        {/* Location */}
+        <Card
+          title="Location"
+          index={1}
+          action={
+            <TouchableOpacity
+              onPress={() => navigation.navigate('location_form')}
+              activeOpacity={0.7}
+            >
+              <Text className="text-xs font-bold text-lime-600">
+                + Add location
+              </Text>
+            </TouchableOpacity>
+          }
+        >
+          <SelectField
+            label="Zone"
+            value={zone}
+            onChange={value => {
+              setZone(value);
+              // the location list depends on the zone
+              setFormData(prev => ({ ...prev, location_id: '' }));
+            }}
+            placeholder="Select zone"
+            items={
+              zones?.map((z: Zone) => ({
+                label: z.zone_name,
+                value: z.id.toString(),
+              })) ?? []
+            }
+          />
+          <SelectField
+            label="Location"
+            value={formData.location_id}
+            onChange={value =>
+              setFormData(prev => ({ ...prev, location_id: value }))
+            }
+            placeholder={zone ? 'Select location' : 'Choose a zone first'}
+            items={
+              filterLocations?.map((location: Location) => ({
+                label: location.location_name,
+                value: location.id.toString(),
+              })) ?? []
+            }
+            enabled={Boolean(zone)}
+          />
+        </Card>
+
+        {/* When */}
+        <Card title="When did it happen?" index={2}>
+          <View className="gap-3">
+            <PickButton
+              icon="calendar"
+              label="Date"
+              placeholder="Select date"
+              value={formData.date ? formatDisplayDate(formData.date) : ''}
+              onPress={showDatePicker}
+              quickOptions={[
+                { label: 'Today', onPress: () => setDateTo(new Date()) },
+                {
+                  label: 'Yesterday',
+                  onPress: () =>
+                    setDateTo(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+                },
+              ]}
+            />
+            <PickButton
+              icon="clock"
+              label="Time"
+              placeholder="Select time"
+              value={formData.time}
+              onPress={showTimePicker}
+              quickOptions={[
+                { label: 'Now', onPress: () => setTimeTo(new Date()) },
+              ]}
+            />
+          </View>
+          <DatePickerSheet
+            visible={isDatePickerVisible}
+            value={formData.date}
+            onConfirm={handleConfirmDate}
+            onClose={hideDatePicker}
+          />
+          <TimePickerSheet
+            visible={isTimePickerVisible}
+            value={formData.time}
+            onConfirm={handleConfirmTime}
+            onClose={hideTimePicker}
+          />
+        </Card>
+
+        {/* Violators */}
+        <Card
+          title="Involved violators"
+          index={3}
+          action={
+            involveViolator.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => clearInvolveViolator()}
+                activeOpacity={0.7}
+              >
+                <Text className="text-xs font-semibold text-red-500">
+                  Clear
+                </Text>
+              </TouchableOpacity>
+            ) : undefined
+          }
+        >
+          {involveViolator.length > 0 ? (
+            <View className="mb-3 gap-2">
+              {involveViolator.map((v, i) => (
+                <View
+                  key={v.id ?? i}
+                  className="flex-row items-center rounded-lg bg-gray-50 p-2.5 dark:bg-slate-700"
+                >
+                  {v.photo ? (
+                    <Image
+                      source={{ uri: v.photo }}
+                      className="h-11 w-11 rounded-full bg-gray-200"
+                    />
+                  ) : (
+                    <View className="h-11 w-11 items-center justify-center rounded-full bg-lime-100 dark:bg-lime-900/40">
+                      <Text className="text-xs font-bold text-lime-700 dark:text-lime-400">
+                        {(v.first_name?.[0] ?? '?').toUpperCase()}
+                        {(v.last_name?.[0] ?? '').toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View className="ml-3 flex-1">
+                    <Text className="text-sm font-semibold text-gray-800 dark:text-white">
+                      {v.first_name} {v.last_name}
+                    </Text>
+                    <Text className="text-xs text-gray-500 dark:text-gray-400">
+                      Age {v.age ?? '—'} · {v?.zone?.zone_name ?? 'No zone'}
+                      {v.address ? `, ${v.address}` : ''}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+              No involved violators yet.
+            </Text>
+          )}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('violators_list')}
+            activeOpacity={0.8}
+            className="items-center rounded-lg border border-lime-600 py-2.5"
+          >
+            <Text className="font-semibold text-lime-700 dark:text-lime-400">
+              + Add violators
+            </Text>
+          </TouchableOpacity>
+        </Card>
+
+        {/* Description */}
+        <Card title="Description" index={4}>
+          <TextInput
+            placeholder="Write a detailed report description..."
+            placeholderTextColor={placeholderColor}
+            value={formData.report_description}
+            onChangeText={text =>
+              setFormData(prev => ({ ...prev, report_description: text }))
+            }
+            multiline
+            textAlignVertical="top"
+            className="min-h-[110px] rounded-lg border border-gray-300 bg-white p-3 text-[15px] text-gray-800 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
+          />
+        </Card>
+
+        {/* Evidence */}
+        <Card
+          title="Evidence photos"
+          index={5}
+          action={
+            evidence.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => clearEvidence()}
+                activeOpacity={0.7}
+              >
+                <Text className="text-xs font-semibold text-red-500">
+                  Clear all
+                </Text>
+              </TouchableOpacity>
+            ) : undefined
+          }
+        >
+          {evidence.length > 0 ? (
+            <View className="mb-3 flex-row flex-wrap gap-2">
+              {evidence.map((img, i) => (
+                <Image
+                  key={i}
+                  source={{ uri: 'file://' + img.incident_evidence }}
+                  className="h-24 w-24 rounded-lg bg-gray-200"
+                />
+              ))}
+            </View>
+          ) : (
+            <Text className="mb-3 text-sm text-gray-500 dark:text-gray-400">
+              No evidence photos yet.
+            </Text>
+          )}
+          <TouchableOpacity
+            onPress={handleOpenCamera}
+            activeOpacity={0.8}
+            className="flex-row items-center justify-center rounded-lg border border-lime-600 py-2.5"
+          >
+            <Icon name="camera" tone="lime" size={18} />
+            <Text className="ml-2 font-semibold text-lime-700 dark:text-lime-400">
+              Open camera
+            </Text>
+          </TouchableOpacity>
+        </Card>
+
+        {/* Submit */}
+        <Enter index={6}>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={CreateReport.isPending}
+            activeOpacity={0.8}
+            className={`mt-1 h-12 items-center justify-center rounded-xl bg-lime-600 ${
+              CreateReport.isPending ? 'opacity-70' : ''
+            }`}
+          >
+            {CreateReport.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-base font-bold text-white">
+                Submit report
+              </Text>
+            )}
+          </TouchableOpacity>
+        </Enter>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 export default ReportForm;
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    backgroundColor: "#f9f9f9",
-  },
-  header: {
-    alignItems: "center",
-    marginVertical: 16,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#222",
-  },
-  subHeader: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-  field: {
-    marginVertical: 12,
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    fontWeight: "600",
-    color: "#333",
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
-    width: "100%",
-  },
-     photo: {
-    width: 70,
-    height: 70,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: "#ddd",
-  },
-  value: {
-    marginTop: 8,
-    fontSize: 15,
-    color: "#444",
-  },
-  textArea: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 15,
-    backgroundColor: "#fff",
-    textAlignVertical: "top",
-    minHeight: 100,
-  },
-  button: {
-    width: '100%',
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'skyblue',
-    borderRadius: 10,
-    marginTop: 10
-  },
-  btnText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff'
-  },
-    buttonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  evidence: {
-    flexDirection: 'row',
-    flexWrap: 'wrap'
-  },
-   deleteBtn: {
-    height: 30,
-    width: 80,
-    backgroundColor: 'tomato',
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFF'
-  }
-});

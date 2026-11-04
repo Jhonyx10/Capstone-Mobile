@@ -14,9 +14,7 @@ import getRequestResponse from "../../hooks/useRequestResponse";
 import { RequestResponse } from "../../types/RequestResponseType";
 import useUserRequest from "../../hooks/useUserRequest";
 
-const MAPBOX_TOKEN =
-  "pk.eyJ1Ijoiam95MTQzIiwiYSI6ImNtZTBxNmp5azA3eDAyc3B2ZDJ0MzA2bzIifQ.3cAGH461ddRycUmezu3INQ";
-Mapbox.setAccessToken(MAPBOX_TOKEN);
+const MAPBOX_TOKEN = Mapbox.setAccessToken(useAppStore.getState().mapbox_token);
 
 // Echo/Pusher setup
 const echo = new Echo({

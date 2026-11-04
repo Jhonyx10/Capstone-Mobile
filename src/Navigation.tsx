@@ -1,8 +1,9 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-
-
-import { createBottomTabNavigator, BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
+import {
+  createBottomTabNavigator,
+  BottomTabNavigationOptions,
+} from '@react-navigation/bottom-tabs';
 import useAppStore from '../store/useAppStore';
 import Welcome from './Welcome';
 import LoginScreen from './LoginScreen';
@@ -11,6 +12,7 @@ import ProfileScreen from './authScreens/tanod/ProfileScreen';
 import ReportScreen from './authScreens/tanod/ReportScreen';
 import ViolatorScreen from './authScreens/tanod/ViolatorScreen';
 import MapScreen from './authScreens/tanod/MapScreen';
+import OperationScreen from './authScreens/tanod/Operation';
 import Home from './authScreens/resident/HomeScreen';
 import Hotline from './authScreens/resident/Hotline';
 
@@ -20,16 +22,15 @@ import ViolatorsDetails from './components/violators/ViolatorsDetails';
 import CameraModal from './components/CameraModal';
 import ReportDetails from './components/reports/ReportDetails';
 import ReportViolatorsList from './components/reports/ReportViolatorsList';
+import OperationDetails from './components/operations/OperationDetails';
 
 import LocationForm from './components/reports/LocationForm';
 import TanodTracker from './authScreens/resident/TanodTracker';
 import OnboardingScreen from './OnboardingScreen';
 import LottieView, { AnimationObject } from 'lottie-react-native';
-import { useRef, useEffect, useState } from 'react';
+import { useRef } from 'react';
 import { View, Text, StatusBar } from 'react-native';
-import { colorScheme, useColorScheme } from 'nativewind';
-import useAppStore from '../store/useAppStore';
-
+import { useColorScheme } from 'nativewind';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator();
@@ -49,38 +50,16 @@ export type RootStackParamList = {
   violators_list: undefined;
   map: undefined;
   location_form: undefined;
-response_tracker: { requestId: number };
+  response_tracker: { requestId: number };
   guest: undefined;
+  operations: undefined;
+  operation_details: { id: number };
 };
-
 
 interface LottieIconProps {
   animationData: AnimationObject;
   focused: boolean;
 }
-
-const AuthTabs = () => {
-  const { user} = useAppStore();
-  return (
-    <Tabs.Navigator screenOptions={{ headerShown: false }}>
-      {user?.role != 'resident' ? (
-        <>
-          <Tabs.Screen name="home" component={HomeScreen} />
-          <Tabs.Screen name="map" component={MapScreen} />
-          <Tabs.Screen name="report" component={ReportScreen} />
-          <Tabs.Screen name="violator" component={ViolatorScreen} />
-          <Tabs.Screen name="profile" component={ProfileScreen} />
-        </>
-      ) : (
-        <>
-            <Tabs.Screen name="guest" component={Home} />
-            <Tabs.Screen name="hotline" component={Hotline} />
-        </>
-      )}
-    </Tabs.Navigator>
-  );
-};
-
 
 const LottieIcon: React.FC<LottieIconProps> = ({ animationData, focused }) => {
   const lottieRef = useRef<LottieView>(null);
@@ -100,6 +79,8 @@ const LottieIcon: React.FC<LottieIconProps> = ({ animationData, focused }) => {
 
 const AuthTabs = () => {
   const { colorScheme } = useColorScheme();
+  const { user } = useAppStore();
+
   const screenOptions: BottomTabNavigationOptions = {
     tabBarShowLabel: false,
     headerShown: false,
@@ -119,6 +100,26 @@ const AuthTabs = () => {
       shadowOpacity: 100,
     },
   };
+
+  // residents get their own simple tabs
+  if (user?.role === 'resident') {
+    return (
+      <Tabs.Navigator
+        screenOptions={{ ...screenOptions, tabBarShowLabel: true }}
+      >
+        <Tabs.Screen
+          name="guest"
+          component={Home}
+          options={{ tabBarLabel: 'Home' }}
+        />
+        <Tabs.Screen
+          name="hotline"
+          component={Hotline}
+          options={{ tabBarLabel: 'Hotline' }}
+        />
+      </Tabs.Navigator>
+    );
+  }
 
   return (
     <Tabs.Navigator screenOptions={screenOptions}>
@@ -286,7 +287,6 @@ const AuthTabs = () => {
 };
 
 const Navigation = () => {
-<<<<<<< HEAD
   const { colorScheme } = useColorScheme();
   const { onboarding, login } = useAppStore();
   return (
@@ -377,6 +377,20 @@ const Navigation = () => {
           options={{
             presentation: 'modal',
             animation: 'fade_from_bottom',
+          }}
+        />
+
+        <Stack.Screen
+          name="operations"
+          component={OperationScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="operation_details"
+          component={OperationDetails}
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_right',
           }}
         />
       </Stack.Navigator>

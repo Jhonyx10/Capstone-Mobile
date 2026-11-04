@@ -1,14 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-<<<<<<< HEAD:src/authScreens/ViolatorScreen.tsx
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../Navigation';
-import Violators from '../components/violators/Violators';
-=======
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../Navigation"; 
+import { RootStackParamList } from '../../Navigation';
+import useAppStore from '../../../store/useAppStore';
 import Violators from '../../components/violators/Violators';
->>>>>>> f1fffad76b1cf7f5dabfae35bb2f9ccc3a55255b:src/authScreens/tanod/ViolatorScreen.tsx
+import Enter from '../../components/Enter';
 
 const ViolatorScreen = () => {
   type ViolatorFormNavigationProp = NativeStackNavigationProp<
@@ -16,58 +13,42 @@ const ViolatorScreen = () => {
     'violator'
   >;
   const navigation = useNavigation<ViolatorFormNavigationProp>();
+  const violatorCount = useAppStore(state => state.violators.length);
 
   return (
-    <View className="flex-1 dark:bg-slate-900">
-      <View style={styles.header}>
-        <Text style={styles.title}>Violators</Text>
+    <SafeAreaView
+      className="flex-1 bg-[#f4f4f4] dark:bg-slate-900"
+      edges={['top']}
+    >
+      {/* Header */}
+      <Enter
+        from="top"
+        className="flex-row items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
+      >
+        <View>
+          <Text className="text-xl font-bold text-gray-800 dark:text-white">
+            Violators
+          </Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-400">
+            {violatorCount} {violatorCount === 1 ? 'person' : 'people'} on
+            record
+          </Text>
+        </View>
+
         <TouchableOpacity
-          style={styles.button}
+          className="rounded-lg bg-lime-600 px-4 py-2.5"
+          activeOpacity={0.8}
           onPress={() => navigation.navigate('violator_form')}
         >
-          <Text style={styles.btnTitle}>+ Add Violator</Text>
+          <Text className="text-sm font-bold text-white">+ Add Violator</Text>
         </TouchableOpacity>
-      </View>
-      <View style={styles.listContainer}>
+      </Enter>
+
+      {/* List (each row animates itself, see Violators.tsx) */}
+      <View className="flex-1 px-3 pt-2">
         <Violators />
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 export default ViolatorScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  button: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'skyblue',
-  },
-  btnTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  listContainer: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-  },
-});

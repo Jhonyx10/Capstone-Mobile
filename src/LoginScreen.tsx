@@ -6,25 +6,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from './Navigation';
 import useAppStore from '../store/useAppStore';
-import { Mutation, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Login } from '../util/Login';
 import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import LottieView from 'lottie-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type LoginScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'login'
->;
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -36,15 +27,12 @@ const LoginScreen = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   const setLogin = useAppStore(state => state.setLogin);
   const setUser = useAppStore(state => state.setUser);
   const setToken = useAppStore(state => state.setToken);
   const base_url = useAppStore(state => state.base_url);
   const setOnboarding = useAppStore(state => state.setOnboarding);
-  const onboarding = useAppStore(state => state.onboarding);
-  const { login } = useAppStore();
 
   const LoginMutation = useMutation({
     mutationFn: Login,
@@ -53,10 +41,7 @@ const LoginScreen = () => {
       setUser(data.user);
       setLogin(true);
       setOnboarding(false);
-      console.log(onboarding);
-      {
-        login && navigation.navigate('authTabs');
-      }
+      // no navigate needed: Navigation.tsx switches to 'authTabs' once login is true
     },
     onError: (error: any) => {
       console.error('Login failed:', error.message);
@@ -66,7 +51,6 @@ const LoginScreen = () => {
   const handleLogin = () => {
     LoginMutation.mutate({ base_url, name, password });
   };
-
 
   useEffect(() => {
     // Password animation
@@ -106,7 +90,6 @@ const LoginScreen = () => {
       clearTimeout(eyesStart);
     };
   }, []);
-
 
   return (
     <KeyboardAvoidingView
@@ -266,10 +249,11 @@ const LoginScreen = () => {
             colors={['#A9C46C', '#5D8736']}
             className="w-full p-4 rounded-lg items-center"
           >
-            {LoginMutation.isPending 
-        ? <ActivityIndicator color="#fff" /> 
-        :  <Text className="text-white text-base font-bold">Login</Text>
-      }
+            {LoginMutation.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white text-base font-bold">Login</Text>
+            )}
           </LinearGradient>
         </AnimatedTouchable>
       </View>
@@ -288,7 +272,7 @@ const LoginScreen = () => {
           </Text>
         </Animated.View>
       )}
-
+    </KeyboardAvoidingView>
   );
 };
 

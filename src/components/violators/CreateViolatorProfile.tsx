@@ -2,69 +2,116 @@ import {
   View,
   Text,
   TextInput,
-  StyleSheet,
   Image,
   TouchableOpacity,
   ScrollView,
   Alert,
-} from "react-native";
-import { useState } from "react";
-import { Picker } from "@react-native-picker/picker";
-import { useCameraPermission } from "react-native-vision-camera";
-import useAppStore from "../../../store/useAppStore";
-import useZones from "../../hooks/useZone";
-import { Zone } from "../../types/ZoneType";
-import { useMutation } from "@tanstack/react-query";
-import { postViolator } from "../../../util/postViolatorProfile";
-import { CreateViolator } from "../../types/ViolatorType";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../../Navigation";
-import usePhotoStore from "../../../store/usePhotoStore";
-import { useQueryClient } from "@tanstack/react-query";
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { useColorScheme } from 'nativewind';
+import { useCameraPermission } from 'react-native-vision-camera';
+import useAppStore from '../../../store/useAppStore';
+import useZones from '../../hooks/useZone';
+import { Zone } from '../../types/ZoneType';
+import { useMutation } from '@tanstack/react-query';
+import { postViolator } from '../../../util/postViolatorProfile';
+import { CreateViolator } from '../../types/ViolatorType';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../Navigation';
+import usePhotoStore from '../../../store/usePhotoStore';
+import { useQueryClient } from '@tanstack/react-query';
+import Icon from '../Icon';
+import Enter from '../Enter';
+import { SelectField } from '../Pickers';
 
 type CameraScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  "violator"
+  'violator'
 >;
 
+const INPUT =
+  'rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-[15px] text-gray-800 dark:border-slate-600 dark:bg-slate-900 dark:text-white';
+
+const Field = ({
+  label,
+  className = 'mb-3',
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) => (
+  <View className={className}>
+    <Text className="mb-1 text-xs font-semibold text-gray-500 dark:text-gray-400">
+      {label}
+    </Text>
+    {children}
+  </View>
+);
+
 const CreateViolatorProfile = () => {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const placeholderColor = isDark ? '#94A3B8' : '#9CA3AF';
+
   const { token, base_url } = useAppStore();
   const { setPhoto } = usePhotoStore();
-  const photo = usePhotoStore((state) => state.photo);
+  const photo = usePhotoStore(state => state.photo);
   const { data } = useZones();
   const navigation = useNavigation<CameraScreenNavigationProp>();
   const { hasPermission, requestPermission } = useCameraPermission();
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const [violator, setViolator] = useState({
-    last_name: "",
-    first_name: "",
-    age: "",
-    zone_id: "",
-    address: "",
+    last_name: '',
+    first_name: '',
+    age: '',
+    zone_id: '',
+    address: '',
     photo: photo,
   });
 
   const violatorProfileMutation = useMutation({
     mutationFn: postViolator,
     onSuccess: () => {
-      Alert.alert("Success", "Violator created successfully.");
+      Alert.alert('Violator added', 'The violator profile was created.');
       setViolator({
-        last_name: "",
-        first_name: "",
-        age: "",
-        zone_id: "",
-        address: "",
-        photo: "",
+        last_name: '',
+        first_name: '',
+        age: '',
+        zone_id: '',
+        address: '',
+        photo: '',
       });
       setPhoto(null);
-      queryClient.invalidateQueries({ queryKey: ["violators"] });
+      queryClient.invalidateQueries({ queryKey: ['violators'] });
       navigation.goBack();
+    },
+    onError: (error: any) => {
+      Alert.alert(
+        'Could not save',
+        error?.message ?? 'Something went wrong. Please try again.',
+      );
     },
   });
 
   const handleSubmit = () => {
+    if (
+      !violator.last_name.trim() ||
+      !violator.first_name.trim() ||
+      !violator.age.trim() ||
+      !violator.zone_id
+    ) {
+      Alert.alert(
+        'Incomplete form',
+        'Please enter the first name, last name, age and zone.',
+      );
+      return;
+    }
+
     const payload: CreateViolator = {
       last_name: violator.last_name,
       first_name: violator.first_name,
@@ -78,7 +125,7 @@ const CreateViolatorProfile = () => {
   };
 
   const handleChange = (field: keyof typeof violator, value: any) => {
-    setViolator((prev) => ({
+    setViolator(prev => ({
       ...prev,
       [field]: value,
     }));
@@ -89,192 +136,173 @@ const CreateViolatorProfile = () => {
       const granted = await requestPermission();
       if (!granted) return;
     }
-     navigation.navigate("camera", { status: "violator" });
+    navigation.navigate('camera', { status: 'violator' });
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Violator Form</Text>
+    <SafeAreaView
+      className="flex-1 bg-[#f4f4f4] dark:bg-slate-900"
+      edges={['top']}
+    >
+      {/* Header */}
+      <Enter
+        from="top"
+        className="flex-row items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
+      >
+        <View className="flex-1 pr-3">
+          <Text className="text-xl font-bold text-gray-800 dark:text-white">
+            Add violator
+          </Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-400">
+            Create a new violator profile
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          className="h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-700"
+        >
+          <Icon name="x" tone="neutral" size={18} />
+        </TouchableOpacity>
+      </Enter>
 
-      {/* Photo preview */}
-      <View style={styles.photoContainer}>
-        {photo ? (
-          <>
-          <Image
-            source={{ uri: "file://" + photo }}
-            style={styles.photoPreview}
-            
-          />
-          <TouchableOpacity style={styles.deleteBtn}
-            onPress={() => setPhoto(null)}
+      <ScrollView
+        contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Photo */}
+        <Enter
+          index={0}
+          className="mb-3 items-center rounded-xl bg-white p-4 dark:bg-slate-800"
+        >
+          <View>
+            {photo ? (
+              <>
+                <Image
+                  source={{ uri: 'file://' + photo }}
+                  className="h-32 w-32 rounded-full bg-gray-200"
+                />
+                <TouchableOpacity
+                  onPress={() => setPhoto(null)}
+                  activeOpacity={0.8}
+                  className="absolute -right-1 -top-1 h-8 w-8 items-center justify-center rounded-full bg-red-500"
+                >
+                  <Icon name="x" color="#FFFFFF" size={16} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View className="h-32 w-32 items-center justify-center rounded-full border-2 border-dashed border-gray-300 dark:border-slate-600">
+                <Icon name="camera" tone="muted" size={32} />
+                <Text className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  No photo
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            onPress={handleOpenCamera}
+            activeOpacity={0.8}
+            className="mt-4 flex-row items-center justify-center rounded-lg border border-lime-600 px-5 py-2.5"
           >
-            <Text style={styles.deleteBtnText}>X</Text>
+            <Icon name="camera" tone="lime" size={18} />
+            <Text className="ml-2 font-semibold text-lime-700 dark:text-lime-400">
+              {photo ? 'Retake photo' : 'Take photo'}
+            </Text>
           </TouchableOpacity>
-          </>
-        ) : (
-          <Text style={styles.photoPlaceholder}>No photo selected</Text>
-        )}
-      </View>
+        </Enter>
 
-      <TouchableOpacity onPress={handleOpenCamera} style={styles.button}>
-        <Text style={styles.buttonText}>Open Camera</Text>
-      </TouchableOpacity>
+        {/* Details */}
+        <Enter
+          index={1}
+          className="mb-3 rounded-xl bg-white p-4 dark:bg-slate-800"
+        >
+          <Text className="mb-3 text-[15px] font-bold text-gray-800 dark:text-white">
+            Personal details
+          </Text>
 
-      {/* Name row */}
-      <View style={styles.row}>
-        <View style={styles.inputWrapper}>
-          <Text>Last Name</Text>
-          <TextInput
-            placeholder="Enter last name"
-            value={violator.last_name}
-            onChangeText={(text) => handleChange("last_name", text)}
-            placeholderTextColor="#888"
-            style={styles.input}
-          />
-        </View>
-
-        <View style={styles.inputWrapper}>
-          <Text>First Name</Text>
-          <TextInput
-            placeholder="Enter first name"
-            value={violator.first_name}
-            onChangeText={(text) => handleChange("first_name", text)}
-            placeholderTextColor="#888"
-            style={styles.input}
-          />
-        </View>
-      </View>
-
-      {/* Age + Zone row */}
-      <View style={styles.row}>
-        <View style={[styles.inputWrapper, { flex: 1 }]}>
-          <Text>Age</Text>
-          <TextInput
-            placeholder="Enter Age"
-            value={violator.age}
-            keyboardType="numeric"
-            onChangeText={(text) => handleChange("age", text)}
-            placeholderTextColor="#888"
-            style={styles.input}
-          />
-        </View>
-
-        <View style={[styles.inputWrapper, { flex: 2 }]}>
-          <Text>Zone</Text>
-          <Picker
-            selectedValue={violator.zone_id}
-            onValueChange={(value) => handleChange("zone_id", value)}
-          >
-            <Picker.Item label="Select Zone Address." color="#888" value="" />
-            {data?.map((zone: Zone) => (
-              <Picker.Item
-                style={styles.picker}
-                key={zone.id}
-                label={zone.zone_name}
-                value={zone.id.toString()}
+          <View className="flex-row gap-2">
+            <Field label="Last name" className="mb-3 flex-1">
+              <TextInput
+                placeholder="Last name"
+                placeholderTextColor={placeholderColor}
+                value={violator.last_name}
+                onChangeText={text => handleChange('last_name', text)}
+                className={INPUT}
               />
-            ))}
-          </Picker>
-        </View>
-      </View>
+            </Field>
+            <Field label="First name" className="mb-3 flex-1">
+              <TextInput
+                placeholder="First name"
+                placeholderTextColor={placeholderColor}
+                value={violator.first_name}
+                onChangeText={text => handleChange('first_name', text)}
+                className={INPUT}
+              />
+            </Field>
+          </View>
 
-      {/* Address */}
-      <View style={styles.inputWrapper}>
-        <Text>Address</Text>
-        <TextInput
-          placeholder="Enter Address"
-          value={violator.address}
-          onChangeText={(text) => handleChange("address", text)}
-          placeholderTextColor="#888"
-          style={styles.input}
-        />
-      </View>
+          <View className="flex-row gap-2">
+            <Field label="Age" className="mb-3 w-24">
+              <TextInput
+                placeholder="Age"
+                placeholderTextColor={placeholderColor}
+                value={violator.age}
+                keyboardType="numeric"
+                onChangeText={text => handleChange('age', text)}
+                className={INPUT}
+              />
+            </Field>
+            <View className="flex-1">
+              <SelectField
+                label="Zone"
+                value={violator.zone_id}
+                onChange={value => handleChange('zone_id', value)}
+                placeholder="Select zone"
+                items={
+                  data?.map((zone: Zone) => ({
+                    label: zone.zone_name,
+                    value: zone.id.toString(),
+                  })) ?? []
+                }
+              />
+            </View>
+          </View>
 
-      {/* Submit */}
-      <TouchableOpacity onPress={handleSubmit} style={styles.button}>
-        <Text style={styles.buttonText}>Submit</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <Field label="Address" className="mb-0">
+            <TextInput
+              placeholder="Street, purok or landmark"
+              placeholderTextColor={placeholderColor}
+              value={violator.address}
+              onChangeText={text => handleChange('address', text)}
+              className={INPUT}
+            />
+          </Field>
+        </Enter>
+
+        {/* Submit */}
+        <Enter index={2}>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={violatorProfileMutation.isPending}
+            activeOpacity={0.8}
+            className={`h-12 items-center justify-center rounded-xl bg-lime-600 ${
+              violatorProfileMutation.isPending ? 'opacity-70' : ''
+            }`}
+          >
+            {violatorProfileMutation.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-base font-bold text-white">
+                Save violator
+              </Text>
+            )}
+          </TouchableOpacity>
+        </Enter>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 export default CreateViolatorProfile;
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    gap: 15,
-    justifyContent: 'center'
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  photoContainer: {
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  photoPreview: {
-    width: 200,
-    height: 200,
-    borderRadius: 10,
-    marginBottom: 5,
-  },
-  photoPlaceholder: {
-    color: "#888",
-    fontStyle: "italic",
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  inputWrapper: {
-    flex: 1,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginTop: 5,
-  },
-  picker: {
-    color: "#000",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  button: {
-    width: "100%",
-    height: 50,
-    borderRadius: 10,
-    backgroundColor: "skyblue",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 15,
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  deleteBtn: {
-    height: 30,
-    width: 30,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    position: 'absolute',
-    top: -10,
-    right: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'tomato'
-  }
-});
