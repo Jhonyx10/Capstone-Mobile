@@ -1,5 +1,13 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Alert,
+  Modal,
+  ActivityIndicator,
+} from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -10,6 +18,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './Navigation';
 import LinearGradient from 'react-native-linear-gradient';
 
+import useAppStore from '../store/useAppStore';
+import { pickPhoneNumber, getSecret } from '../util/phone';
+import { residentLogin, ApiError } from '../util/residentApi';
+
 type WelcomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   'welcome'
@@ -19,6 +31,69 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 const Welcome = () => {
   const navigation = useNavigation<WelcomeScreenNavigationProp>();
+
+  const setLogin = useAppStore(state => state.setLogin);
+  const setUser = useAppStore(state => state.setUser);
+  const setToken = useAppStore(state => state.setToken);
+  const setOnboarding = useAppStore(state => state.setOnboarding);
+  const base_url = useAppStore(state => state.base_url);
+
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [unregisteredPhone, setUnregisteredPhone] = useState<string | null>(
+    null,
+  );
+
+  const handleGuestLogin = async () => {
+    setGuestLoading(true);
+    let phone: string | null = null;
+
+    try {
+      // opens Google's phone number picker
+      phone = await pickPhoneNumber();
+      if (!phone) {
+        Alert.alert(
+          'Walang napili',
+          'Pumili ng mobile number para magpatuloy.',
+        );
+        return;
+      }
+
+      const secret = await getSecret(phone);
+      const data = await residentLogin(base_url, phone, secret);
+
+      if (data.status === 'pending') {
+        Alert.alert(
+          'Hinihintay ang approval',
+          'Sinusuri pa ng barangay ang iyong registration. Subukan ulit mamaya.',
+        );
+      } else if (data.status === 'rejected') {
+        Alert.alert(
+          'Na-reject ang registration',
+          data.reject_reason ?? 'Subukang mag-register ulit.',
+        );
+      } else {
+        setToken(data.token);
+        setUser(data.user);
+        setLogin(true);
+        setOnboarding(false);
+        // no navigate needed: Navigation.tsx switches to 'authTabs' once login is true
+      }
+    } catch (e: any) {
+      if (e instanceof ApiError && e.code === 'NOT_REGISTERED') {
+        setUnregisteredPhone(phone); // opens the "not registered" modal
+      } else {
+        Alert.alert('Hindi makapag-login', e.message ?? 'Subukan ulit.');
+      }
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
+  const goToRegister = () => {
+    const phone = unregisteredPhone;
+    setUnregisteredPhone(null);
+    if (phone) navigation.navigate('resident_register', { phone });
+  };
 
   return (
     <View className="flex-1 justify-center items-center relative dark:bg-slate-900">
@@ -60,6 +135,7 @@ const Welcome = () => {
           {/* Login Button with Gradient */}
           <AnimatedTouchable
             onPress={() => navigation.navigate('login')}
+            disabled={guestLoading}
             className="w-full mt-2 rounded-lg overflow-hidden"
             entering={FadeInUp.delay(500).duration(300).springify().damping(60)}
           >
@@ -75,13 +151,18 @@ const Welcome = () => {
 
           {/* Guest Login Button */}
           <AnimatedTouchable
-            onPress={() => navigation.navigate('login')}
+            onPress={handleGuestLogin}
+            disabled={guestLoading}
             className="w-full p-4 rounded-lg mt-2 items-center border-2 border-[#A9C46C]"
             entering={FadeInUp.delay(600).duration(300).springify().damping(60)}
           >
-            <Text className="text-base font-bold text-[#5B5B5B] dark:text-white">
-              Login as Guest
-            </Text>
+            {guestLoading ? (
+              <ActivityIndicator color="#5D8736" />
+            ) : (
+              <Text className="text-base font-bold text-[#5B5B5B] dark:text-white">
+                Login as Guest
+              </Text>
+            )}
           </AnimatedTouchable>
         </View>
       </View>
@@ -99,6 +180,51 @@ const Welcome = () => {
           | ©OCC IT Students 2025
         </Text>
       </Animated.View>
+
+      {/* "Number not registered" modal */}
+      <Modal
+        visible={!!unregisteredPhone}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUnregisteredPhone(null)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/50 px-6">
+          <View className="w-full rounded-2xl bg-white p-6 dark:bg-slate-800">
+            <Text className="text-xl font-bold text-center text-lime-600 mb-2">
+              Hindi pa rehistrado
+            </Text>
+            <Text className="text-center text-[#5B5B5B] dark:text-gray-300 mb-1">
+              Ang numerong ito ay wala pang account:
+            </Text>
+            <Text className="text-center text-lg font-bold mb-5 dark:text-white">
+              {unregisteredPhone}
+            </Text>
+
+            <TouchableOpacity
+              className="rounded-lg overflow-hidden"
+              onPress={goToRegister}
+            >
+              <LinearGradient
+                colors={['#A9C46C', '#5D8736']}
+                className="p-4 items-center rounded-lg"
+              >
+                <Text className="text-white font-bold">
+                  I-register ang numero
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="mt-3 p-3 items-center"
+              onPress={() => setUnregisteredPhone(null)}
+            >
+              <Text className="text-[#5B5B5B] dark:text-gray-300">
+                Kanselahin
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

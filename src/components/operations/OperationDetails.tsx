@@ -31,11 +31,16 @@ import Enter from '../Enter';
 import OperationMap, {
   activeUsers,
   areaState,
+  MINE_COLOR,
   STATE_COLORS,
   STATE_LABELS,
 } from '../maps/OperationMap';
 import type { OperationArea } from '../../types/OperationType';
 import type { RootStackParamList } from '../../Navigation';
+import { useUserLocation } from '../../../util/useUserLocation';
+import { useRouteToOperation } from '../../../util/useRouteToOperation';
+import { formatDistance, formatDuration, isInside } from '../../../util/geo';
+import type { LngLat } from '../../../util/geo';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'operation_details'>;
@@ -111,10 +116,12 @@ const MiniStat = ({ label, value }: { label: string; value: string }) => (
 const AreaRow = ({
   area,
   selected,
+  mine,
   onPress,
 }: {
   area: OperationArea;
   selected: boolean;
+  mine: boolean;
   onPress: () => void;
 }) => {
   const users = activeUsers(area);
@@ -125,7 +132,11 @@ const AreaRow = ({
     <Pressable
       onPress={onPress}
       className={`mb-3 rounded-2xl border bg-white p-4 active:opacity-80 dark:bg-slate-800 ${
-        selected ? 'border-lime-500' : 'border-gray-100 dark:border-slate-700'
+        mine
+          ? 'border-[#7C3AED] bg-[#7C3AED]/5 dark:bg-[#7C3AED]/15'
+          : selected
+          ? 'border-lime-500'
+          : 'border-gray-100 dark:border-slate-700'
       }`}
     >
       <View className="flex-row items-center">
@@ -141,9 +152,21 @@ const AreaRow = ({
         </View>
 
         <View className="ml-3 flex-1">
-          <Text className="text-base font-semibold text-gray-900 dark:text-white">
-            {area.name}
-          </Text>
+          <View className="flex-row items-center">
+            <Text className="mr-2 flex-shrink text-base font-semibold text-gray-900 dark:text-white">
+              {area.name}
+            </Text>
+            {mine ? (
+              <View
+                className="rounded-full px-2.5 py-0.5"
+                style={{ backgroundColor: MINE_COLOR }}
+              >
+                <Text className="text-[11px] font-bold text-white">
+                  Your area
+                </Text>
+              </View>
+            ) : null}
+          </View>
           <View className="mt-1 flex-row items-center">
             {slots.map((_, i) => (
               <View
@@ -164,7 +187,12 @@ const AreaRow = ({
           </View>
         </View>
 
-        <Icon name="map-pin" tone={selected ? 'lime' : 'muted'} size={18} />
+        <Icon
+          name="map-pin"
+          color={mine ? MINE_COLOR : undefined}
+          tone={selected ? 'lime' : 'muted'}
+          size={18}
+        />
       </View>
 
       <View className="mt-3 flex-row flex-wrap">
@@ -196,6 +224,10 @@ const OperationDetails = () => {
   const insets = useSafeAreaInsets();
   const token = useAppStore(s => s.token);
   const base_url = useAppStore(s => s.base_url);
+  // id of the logged-in tanod. Change this if your store names it differently.
+  const myId = useAppStore(s => s.user?.id);
+  const mapboxToken = useAppStore(s => s.mapbox_token);
+  const { coords: myCoords, denied: locationDenied } = useUserLocation();
   const scrollRef = useRef<ScrollView>(null);
   const mapY = useRef(0);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
@@ -214,10 +246,24 @@ const OperationDetails = () => {
 
   const goBack = () => navigation.goBack();
 
+  // the operation's own location, and the trip from the user to it
+  const destination: LngLat | null =
+    op &&
+    Number.isFinite(Number(op.longitude)) &&
+    Number.isFinite(Number(op.latitude))
+      ? [Number(op.longitude), Number(op.latitude)]
+      : null;
+  const atOperation = !!(op && myCoords && isInside(myCoords, op));
+  const route = useRouteToOperation(
+    atOperation ? null : myCoords,
+    destination,
+    mapboxToken,
+  );
+
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={GREEN} />
       </View>
     );
   }
@@ -266,6 +312,34 @@ const OperationDetails = () => {
   const date = formatEventDate(op.event_date);
   const countdown =
     op.status === 'upcoming' ? countdownLabel(op.event_date) : null;
+
+  // areas where the logged-in tanod is an active assignee
+  const myAreas =
+    myId == null
+      ? []
+      : areas.filter(a =>
+          activeUsers(a).some(u => Number(u.id) === Number(myId)),
+        );
+  const myAreaIds = myAreas.map(a => a.id);
+
+  // the one distance shown: from the user to the operation location
+  const tripLabel = !myCoords
+    ? null
+    : atOperation
+    ? "You're at the operation"
+    : !route
+    ? null
+    : route.kind === 'road' && route.seconds != null
+    ? `${formatDistance(route.meters)}, about ${formatDuration(
+        route.seconds,
+      )} by road`
+    : `${formatDistance(route.meters)} away in a straight line`;
+
+  // my area first, so it is the first thing in the list
+  const orderedAreas = [...areas].sort(
+    (a, b) =>
+      Number(myAreaIds.includes(b.id)) - Number(myAreaIds.includes(a.id)),
+  );
 
   const pickArea = (id: number | null) => {
     setSelectedAreaId(prev => (id !== null && prev === id ? null : id));
@@ -330,9 +404,46 @@ const OperationDetails = () => {
         </LinearGradient>
       </Enter>
 
+      {/* my assignment */}
+      {myId != null && (
+        <Enter index={2}>
+          {myAreas.length > 0 ? (
+            <Pressable
+              onPress={() => pickFromList(myAreas[0].id)}
+              accessibilityRole="button"
+              accessibilityLabel="Show my area on the map"
+              className="mt-4 flex-row items-center rounded-2xl border border-[#7C3AED] bg-[#7C3AED]/10 p-4 active:opacity-80 dark:bg-[#7C3AED]/20"
+            >
+              <View
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: MINE_COLOR }}
+              >
+                <Icon name="shield" color="#FFFFFF" size={20} />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-xs text-gray-600 dark:text-gray-300">
+                  Your assignment
+                </Text>
+                <Text className="text-base font-bold text-gray-900 dark:text-white">
+                  {myAreas.map(a => a.name).join(', ')}
+                </Text>
+              </View>
+              <Icon name="chevron-right" color={MINE_COLOR} size={20} />
+            </Pressable>
+          ) : (
+            <View className="mt-4 flex-row items-center rounded-2xl bg-white p-4 dark:bg-slate-800">
+              <Icon name="user" tone="muted" size={18} />
+              <Text className="ml-3 flex-1 text-sm text-gray-600 dark:text-gray-300">
+                You're not assigned to an area in this operation.
+              </Text>
+            </View>
+          )}
+        </Enter>
+      )}
+
       {/* staffing */}
       <Enter
-        index={2}
+        index={3}
         className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
       >
         <View className="mb-3 flex-row items-center justify-between">
@@ -358,7 +469,7 @@ const OperationDetails = () => {
 
       {/* map */}
       <Enter
-        index={3}
+        index={4}
         className="mt-4"
         onLayout={e => {
           mapY.current = e.nativeEvent.layout.y;
@@ -369,11 +480,16 @@ const OperationDetails = () => {
           areas={areas}
           selectedAreaId={selectedAreaId}
           onSelectArea={pickArea}
+          myAreaIds={myAreaIds}
+          userLocation={myCoords}
+          route={atOperation ? null : route}
+          destination={destination}
+          tripLabel={tripLabel}
         />
       </Enter>
 
       {/* areas */}
-      <Enter index={4}>
+      <Enter index={5}>
         <View className="mb-1 mt-6 flex-row items-center justify-between">
           <Text className="text-lg font-bold text-gray-900 dark:text-white">
             Areas
@@ -384,8 +500,15 @@ const OperationDetails = () => {
         </View>
       </Enter>
 
+      {locationDenied ? (
+        <Text className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+          Location is off. Allow it in settings to see the route to this
+          operation.
+        </Text>
+      ) : null}
+
       {areas.length === 0 ? (
-        <Enter index={5}>
+        <Enter index={6}>
           <View className="mt-3 items-center rounded-2xl bg-white p-6 dark:bg-slate-800">
             <Icon name="map" size={28} tone="muted" />
             <Text className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -395,11 +518,12 @@ const OperationDetails = () => {
         </Enter>
       ) : (
         <View className="mt-2">
-          {areas.map((a, i) => (
-            <Enter key={a.id} index={5 + i}>
+          {orderedAreas.map((a, i) => (
+            <Enter key={a.id} index={6 + i}>
               <AreaRow
                 area={a}
                 selected={a.id === selectedAreaId}
+                mine={myAreaIds.includes(a.id)}
                 onPress={() => pickFromList(a.id)}
               />
             </Enter>

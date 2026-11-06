@@ -28,6 +28,30 @@ const GREEN = '#5D8736';
 
 const TOGGLE_ANIMATION = { duration: 250, easing: Easing.out(Easing.cubic) };
 
+
+// The login response includes the user's current group assignment, with the
+// group inside it. Laravel sends relation names in snake_case, so it arrives
+// as `current_assignment`.
+type GroupInfo = { id: number; name: string; capacity?: number | null };
+
+type UserWithGroup = {
+  current_assignment?: { group?: GroupInfo | null } | null;
+  currentAssignment?: { group?: GroupInfo | null } | null;
+  group?: GroupInfo | GroupInfo[] | null;
+};
+
+const getGroup = (user: unknown): GroupInfo | null => {
+  const u = user as UserWithGroup | null;
+
+  const assigned = (u?.current_assignment ?? u?.currentAssignment)?.group;
+  if (assigned) return assigned;
+
+  // fallback for a plain `group` relation
+  const raw = u?.group;
+  if (!raw) return null;
+  return Array.isArray(raw) ? raw[0] ?? null : raw;
+};
+
 // Switch whose thumb slides and track color fades. The animation runs on the
 // UI thread, so it stays smooth even while the whole app re-renders in the
 // new theme.
@@ -176,11 +200,11 @@ const ProfileScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isDark = colorScheme === 'dark';
-
+console.log('USER', JSON.stringify(user));
   // TODO: add the navigation / logic for these when the screens exist
   const handleUpdateAccount = () => {};
   const goToOperations = () => navigation.navigate('operations');
-  const goToWatchlist = () => {};
+  const goToWatchlist = () => navigation.navigate('watchlists');
   const goToPerformanceReview = () => {};
 
   const initials = (user?.name ?? '?')
@@ -193,6 +217,8 @@ const ProfileScreen = () => {
   const role = user?.role
     ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
     : '';
+
+  const group = getGroup(user);
 
   return (
     <SafeAreaView
@@ -242,6 +268,15 @@ const ProfileScreen = () => {
                   {user.email}
                 </Text>
               ) : null}
+              <View className="mt-1.5 flex-row items-center self-start rounded-full bg-white/25 px-2.5 py-1">
+                <Icon name="users" size={12} color="#FFFFFF" />
+                <Text
+                  className="ml-1.5 text-xs font-semibold text-white"
+                  numberOfLines={1}
+                >
+                  {group?.name ?? 'No group assigned'}
+                </Text>
+              </View>
             </View>
             {role ? (
               <View className="ml-2 rounded-full bg-white/25 px-3 py-1">
@@ -256,6 +291,7 @@ const ProfileScreen = () => {
           <Section title="Account">
             <InfoRow label="Name" value={user?.name} />
             <InfoRow label="Email" value={user?.email} />
+            <InfoRow label="Group" value={group?.name ?? 'No group assigned'} />
             <InfoRow label="Role" value={role} last />
 
             <TouchableOpacity

@@ -2,6 +2,7 @@ import { View, Text, Image, ScrollView, RefreshControl } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import LottieView from 'lottie-react-native';
 import BarChartComponent from '../../components/BarChartComponent';
+import HomeInsights from '../../components/HomeInsights';
 import Enter from '../../components/Enter';
 import useAppStore from '../../../store/useAppStore';
 import useHomeAnalytics from '../../hooks/useHomeAnalytics';
@@ -46,6 +47,7 @@ const HomeScreen = () => {
     responseTime,
     requests,
     residents,
+    insights,
     isLoading,
     isError,
     isRefetching,
@@ -114,7 +116,7 @@ const HomeScreen = () => {
               <View className="h-2 w-full rounded-xl items-center bg-white mt-4" />
               <View className="mx-4 mt-2">
                 <Text className="text-white">
-                  All Incident Reports This month
+                  Your Group's Reports This Month
                 </Text>
                 <View className="flex flex-row justify-between items-center">
                   <View className="flex flex-row items-center ">
@@ -185,6 +187,9 @@ const HomeScreen = () => {
               data={[previous, current]}
             />
           </Enter>
+
+          {/* more analytics: alerts, trends, categories, group activity */}
+          <HomeInsights insights={insights} />
         </View>
       </ScrollView>
     </View>

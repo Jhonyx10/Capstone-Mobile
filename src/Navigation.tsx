@@ -7,6 +7,7 @@ import {
 import useAppStore from '../store/useAppStore';
 import Welcome from './Welcome';
 import LoginScreen from './LoginScreen';
+import ResidentRegisterScreen from './ResidentRegisterScreen';
 import HomeScreen from './authScreens/tanod/HomeScreen';
 import ProfileScreen from './authScreens/tanod/ProfileScreen';
 import ReportScreen from './authScreens/tanod/ReportScreen';
@@ -24,6 +25,9 @@ import ReportDetails from './components/reports/ReportDetails';
 import ReportViolatorsList from './components/reports/ReportViolatorsList';
 import OperationDetails from './components/operations/OperationDetails';
 
+import Profile from './authScreens/resident/Profile'
+import Request from './authScreens/resident/Request';
+
 import LocationForm from './components/reports/LocationForm';
 import TanodTracker from './authScreens/resident/TanodTracker';
 import OnboardingScreen from './OnboardingScreen';
@@ -32,6 +36,9 @@ import { useRef } from 'react';
 import { View, Text, StatusBar } from 'react-native';
 import { useColorScheme } from 'nativewind';
 
+import WatchList from './authScreens/tanod/WatchList';
+import WatchListDetails from './components/operations/WatchListDetails';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator();
 
@@ -39,6 +46,7 @@ export type RootStackParamList = {
   welcome: undefined;
   onboarding: undefined;
   login: undefined;
+  resident_register: { phone: string }; // 👈 NEW
   authTabs: undefined;
   report: undefined;
   violator: undefined;
@@ -54,6 +62,9 @@ export type RootStackParamList = {
   guest: undefined;
   operations: undefined;
   operation_details: { id: number };
+  watchlists: undefined;
+  watch_list_details: { id: number };
+  hotline: undefined;
 };
 
 interface LottieIconProps {
@@ -76,6 +87,38 @@ const LottieIcon: React.FC<LottieIconProps> = ({ animationData, focused }) => {
     />
   );
 };
+
+const TabItem = ({
+  animation,
+  label,
+  focused,
+  rotate,
+}: {
+  animation: AnimationObject;
+  label: string;
+  focused: boolean;
+  rotate?: string;
+}) => (
+  <View className="relative items-center">
+    <View
+      className={`absolute bottom-2 h-full items-center justify-center px-6 ${
+        focused
+          ? 'border-t-2 border-green-500'
+          : 'border-t-2 border-transparent'
+      }`}
+    />
+    <View style={rotate ? { transform: [{ rotate }] } : undefined}>
+      <LottieIcon animationData={animation} focused={focused} />
+    </View>
+    <Text
+      className={`mt-1 text-center text-[10px] text-green-500 ${
+        focused ? 'opacity-100' : 'opacity-90'
+      }`}
+    >
+      {label}
+    </Text>
+  </View>
+);
 
 const AuthTabs = () => {
   const { colorScheme } = useColorScheme();
@@ -102,24 +145,65 @@ const AuthTabs = () => {
   };
 
   // residents get their own simple tabs
-  if (user?.role === 'resident') {
-    return (
-      <Tabs.Navigator
-        screenOptions={{ ...screenOptions, tabBarShowLabel: true }}
-      >
-        <Tabs.Screen
-          name="guest"
-          component={Home}
-          options={{ tabBarLabel: 'Home' }}
-        />
-        <Tabs.Screen
-          name="hotline"
-          component={Hotline}
-          options={{ tabBarLabel: 'Hotline' }}
-        />
-      </Tabs.Navigator>
-    );
-  }
+if (user?.role === 'resident') {
+  return (
+    <Tabs.Navigator screenOptions={screenOptions}>
+      <Tabs.Screen
+        name="guest"
+        component={Home}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabItem
+              animation={require('./assets/animation/HomeBar.json')}
+              label="Home"
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="request"
+        component={Request}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabItem
+              animation={require('./assets/animation/AddBar.json')}
+              label="Request"
+              focused={focused}
+              rotate="46deg"
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="watchlist"
+        component={WatchList}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabItem
+              animation={require('./assets/animation/MenuBar.json')}
+              label="Watch list"
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        component={Profile}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabItem
+              animation={require('./assets/animation/ViolatorBar.json')}
+              label="Profile"
+              focused={focused}
+            />
+          ),
+        }}
+      />
+    </Tabs.Navigator>
+  );
+}
 
   return (
     <Tabs.Navigator screenOptions={screenOptions}>
@@ -312,6 +396,12 @@ const Navigation = () => {
           <>
             <Stack.Screen name="welcome" component={Welcome} />
             <Stack.Screen name="login" component={LoginScreen} />
+            {/* 👇 NEW: only reachable while logged out */}
+            <Stack.Screen
+              name="resident_register"
+              component={ResidentRegisterScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
           </>
         )}
         <Stack.Screen
@@ -388,6 +478,22 @@ const Navigation = () => {
         <Stack.Screen
           name="operation_details"
           component={OperationDetails}
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="watchlists"
+          component={WatchList}
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="watch_list_details"
+          component={WatchListDetails}
           options={{
             presentation: 'modal',
             animation: 'slide_from_right',

@@ -7,12 +7,19 @@ import {
   Platform,
   Image,
   ActivityIndicator,
+  Alert,
+  Modal,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import useAppStore from '../store/useAppStore';
 import { useMutation } from '@tanstack/react-query';
 import { Login } from '../util/Login';
+import { pickPhoneNumber, getSecret } from '../util/phone';
+import { residentLogin, ApiError } from '../util/residentApi';
+import type { RootStackParamList } from './Navigation';
 import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import LottieView from 'lottie-react-native';
@@ -20,6 +27,9 @@ import LottieView from 'lottie-react-native';
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 const LoginScreen = () => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   const passwordAnim = useRef<LottieView>(null);
   const eyesAnim = useRef<LottieView>(null);
   const personAnim = useRef<LottieView>(null);
@@ -27,6 +37,12 @@ const LoginScreen = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
+
+  // guest (resident) login state
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [unregisteredPhone, setUnregisteredPhone] = useState<string | null>(
+    null,
+  );
 
   const setLogin = useAppStore(state => state.setLogin);
   const setUser = useAppStore(state => state.setUser);
@@ -50,6 +66,57 @@ const LoginScreen = () => {
 
   const handleLogin = () => {
     LoginMutation.mutate({ base_url, name, password });
+  };
+
+  const handleGuestLogin = async () => {
+    setGuestLoading(true);
+    let phone: string | null = null;
+
+    try {
+      // opens Google's phone number picker
+      phone = await pickPhoneNumber();
+      if (!phone) {
+        Alert.alert(
+          'Walang napili',
+          'Pumili ng mobile number para magpatuloy.',
+        );
+        return;
+      }
+
+      const secret = await getSecret(phone);
+      const data = await residentLogin(base_url, phone, secret);
+
+      if (data.status === 'pending') {
+        Alert.alert(
+          'Hinihintay ang approval',
+          'Sinusuri pa ng barangay ang iyong registration. Subukan ulit mamaya.',
+        );
+      } else if (data.status === 'rejected') {
+        Alert.alert(
+          'Na-reject ang registration',
+          data.reject_reason ?? 'Subukang mag-register ulit.',
+        );
+      } else {
+        setToken(data.token);
+        setUser(data.user);
+        setLogin(true);
+        setOnboarding(false);
+      }
+    } catch (e: any) {
+      if (e instanceof ApiError && e.code === 'NOT_REGISTERED') {
+        setUnregisteredPhone(phone); // opens the "not registered" modal
+      } else {
+        Alert.alert('Hindi makapag-login', e.message ?? 'Subukan ulit.');
+      }
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
+  const goToRegister = () => {
+    const phone = unregisteredPhone;
+    setUnregisteredPhone(null);
+    if (phone) navigation.navigate('resident_register', { phone });
   };
 
   useEffect(() => {
@@ -238,6 +305,7 @@ const LoginScreen = () => {
             <Text className="text-lime-600">Click Here</Text>
           </Text>
         </Animated.View>
+
         {/* Login Button */}
         <AnimatedTouchable
           onPress={handleLogin}
@@ -256,7 +324,24 @@ const LoginScreen = () => {
             )}
           </LinearGradient>
         </AnimatedTouchable>
+
+        {/* Guest (resident) Login */}
+        <AnimatedTouchable
+          onPress={handleGuestLogin}
+          disabled={guestLoading || LoginMutation.isPending}
+          className="w-full mt-3 p-4 rounded-lg items-center border border-lime-700"
+          entering={FadeInUp.delay(700).duration(300).springify().damping(60)}
+        >
+          {guestLoading ? (
+            <ActivityIndicator color="#5D8736" />
+          ) : (
+            <Text className="text-lime-700 text-base font-bold dark:text-lime-500">
+              Login as Guest
+            </Text>
+          )}
+        </AnimatedTouchable>
       </View>
+
       {/* Footer */}
       {!isInputFocused && ( // 👈 Hide footer when typing
         <Animated.View
@@ -272,6 +357,51 @@ const LoginScreen = () => {
           </Text>
         </Animated.View>
       )}
+
+      {/* "Number not registered" modal */}
+      <Modal
+        visible={!!unregisteredPhone}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUnregisteredPhone(null)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/50 px-6">
+          <View className="w-full rounded-2xl bg-white p-6 dark:bg-slate-800">
+            <Text className="text-xl font-bold text-center text-lime-600 mb-2">
+              Hindi pa rehistrado
+            </Text>
+            <Text className="text-center text-[#5B5B5B] dark:text-gray-300 mb-1">
+              Ang numerong ito ay wala pang account:
+            </Text>
+            <Text className="text-center text-lg font-bold mb-5 dark:text-white">
+              {unregisteredPhone}
+            </Text>
+
+            <TouchableOpacity
+              className="rounded-lg overflow-hidden"
+              onPress={goToRegister}
+            >
+              <LinearGradient
+                colors={['#A9C46C', '#5D8736']}
+                className="p-4 items-center rounded-lg"
+              >
+                <Text className="text-white font-bold">
+                  I-register ang numero
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="mt-3 p-3 items-center"
+              onPress={() => setUnregisteredPhone(null)}
+            >
+              <Text className="text-[#5B5B5B] dark:text-gray-300">
+                Kanselahin
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };

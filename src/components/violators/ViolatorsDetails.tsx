@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -23,16 +24,30 @@ type ViolatorsDetailsRouteProp = RouteProp<
 
 const GREEN = '#5D8736';
 
-const formatDate = (d?: string | null) => {
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+const getDateParts = (d?: string | null) => {
   if (!d) return null;
   const date = new Date(`${d.slice(0, 10)}T00:00:00`);
-  return isNaN(date.getTime())
-    ? null
-    : date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+  if (isNaN(date.getTime())) return null;
+  return {
+    month: MONTHS[date.getMonth()],
+    day: date.getDate(),
+    year: date.getFullYear(),
+  };
 };
 
 const formatTime = (t?: string | null) => {
@@ -50,20 +65,122 @@ const formatTime = (t?: string | null) => {
 const Header = ({ onBack }: { onBack: () => void }) => (
   <Enter
     from="top"
-    className="flex-row items-center border-b border-gray-200 bg-white px-3 py-3 dark:border-slate-700 dark:bg-slate-900"
+    className="flex-row items-center border-b border-gray-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
   >
     <TouchableOpacity
       onPress={onBack}
       activeOpacity={0.7}
-      className="h-9 w-9 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-700"
+      accessibilityLabel="Go back"
+      className="mr-3 h-10 w-10 items-center justify-center rounded-lg bg-[#5D8736]/10 dark:bg-[#5D8736]/25"
     >
-      <Icon name="chevron-left" tone="neutral" size={20} />
+      <Icon name="chevron-left" color={GREEN} size={22} />
     </TouchableOpacity>
-    <Text className="ml-3 text-xl font-bold text-gray-800 dark:text-white">
+    <Text className="text-xl font-bold text-gray-800 dark:text-white">
       Violator profile
     </Text>
   </Enter>
 );
+
+// Rounded square, not a circle. Falls back to initials if there is no photo
+// or it fails to load.
+const Photo = ({
+  uri,
+  initials,
+}: {
+  uri?: string | null;
+  initials: string;
+}) => {
+  const [failed, setFailed] = useState(false);
+  const show = !!uri && !failed;
+
+  return (
+    <View className="h-36 w-28 overflow-hidden rounded-2xl bg-[#5D8736]/10 dark:bg-[#5D8736]/25">
+      {show ? (
+        <Image
+          source={{ uri: uri! }}
+          onError={() => setFailed(true)}
+          resizeMode="cover"
+          style={{ width: '100%', height: '100%' }}
+        />
+      ) : (
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-3xl font-bold text-[#5D8736] dark:text-lime-400">
+            {initials}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const Chip = ({ text }: { text: string }) => (
+  <View className="mb-1.5 mr-2 rounded-lg bg-[#5D8736]/10 px-3 py-1 dark:bg-[#5D8736]/25">
+    <Text className="text-xs font-bold text-[#5D8736] dark:text-lime-400">
+      {text}
+    </Text>
+  </View>
+);
+
+const RecordCard = ({ report, index }: { report: Report; index: number }) => {
+  const parts = getDateParts(report.date);
+  const time = formatTime(report.time);
+
+  return (
+    <Enter
+      index={index}
+      className="mb-3 flex-row rounded-3xl bg-white p-4 dark:bg-slate-800"
+      style={{
+        shadowColor: GREEN,
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 3,
+      }}
+    >
+      <View className="h-16 w-16 items-center justify-center rounded-2xl bg-[#5D8736]/10 dark:bg-[#5D8736]/25">
+        {parts ? (
+          <>
+            <Text className="text-xs font-semibold text-[#5D8736] dark:text-lime-400">
+              {parts.month}
+            </Text>
+            <Text className="text-2xl font-bold leading-7 text-[#5D8736] dark:text-lime-400">
+              {parts.day}
+            </Text>
+          </>
+        ) : (
+          <Icon name="calendar" tone="muted" size={22} />
+        )}
+      </View>
+
+      <View className="ml-4 flex-1">
+        <Text className="text-base font-bold text-gray-900 dark:text-white">
+          Report #{report.id}
+        </Text>
+        <Text
+          className="mt-1 text-sm text-gray-600 dark:text-gray-300"
+          numberOfLines={3}
+        >
+          {report.report_description || 'No description provided.'}
+        </Text>
+
+        <View className="mt-3 flex-row flex-wrap items-center border-t border-gray-100 pt-3 dark:border-slate-700">
+          <View className="mr-4 flex-row items-center">
+            <Icon name="calendar" tone="muted" size={14} />
+            <Text className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
+              {parts ? `${parts.month} ${parts.day}, ${parts.year}` : 'No date'}
+            </Text>
+          </View>
+          <View className="flex-row items-center">
+            <Icon name="clock" tone="muted" size={14} />
+            <Text className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
+              {time ?? 'No time'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Enter>
+  );
+};
 
 const ViolatorsDetails = () => {
   const { base_url, token } = useAppStore();
@@ -91,7 +208,7 @@ const ViolatorsDetails = () => {
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color={GREEN} />
         <Text className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-          Loading profile...
+          Loading profile
         </Text>
       </View>,
     );
@@ -100,7 +217,8 @@ const ViolatorsDetails = () => {
   if (isError || !data) {
     return shell(
       <Enter className="flex-1 items-center justify-center px-6">
-        <Text className="text-base font-semibold text-gray-800 dark:text-white">
+        <Icon name="alert-triangle" color="#F59E0B" size={36} />
+        <Text className="mt-3 text-base font-semibold text-gray-800 dark:text-white">
           Couldn't load this profile
         </Text>
         <Text className="mt-1 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -109,7 +227,7 @@ const ViolatorsDetails = () => {
         <TouchableOpacity
           onPress={() => refetch()}
           activeOpacity={0.8}
-          className="mt-4 rounded-lg bg-lime-600 px-5 py-2.5"
+          className="mt-4 rounded-lg bg-[#5D8736] px-5 py-2.5"
         >
           <Text className="text-sm font-bold text-white">Try again</Text>
         </TouchableOpacity>
@@ -120,55 +238,61 @@ const ViolatorsDetails = () => {
   const fullName =
     [data.last_name, data.first_name].filter(Boolean).join(', ') ||
     'Unnamed violator';
+  const initials = `${(data.first_name?.[0] ?? '?').toUpperCase()}${(
+    data.last_name?.[0] ?? ''
+  ).toUpperCase()}`;
   const reports: Report[] = data.reports ?? [];
 
   return shell(
     <ScrollView
-      contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Profile card */}
+      {/* Profile: photo on the left, details beside it */}
       <Enter
         index={0}
-        className="mb-4 items-center rounded-xl border-t-4 border-lime-600 bg-white p-5 dark:bg-slate-800"
+        className="mb-5 rounded-3xl bg-white p-4 dark:bg-slate-800"
+        style={{
+          shadowColor: GREEN,
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+        }}
       >
-        {data.photo ? (
-          <Image
-            source={{ uri: data.photo }}
-            className="h-28 w-28 rounded-full bg-gray-200"
-          />
-        ) : (
-          <View className="h-28 w-28 items-center justify-center rounded-full bg-lime-100 dark:bg-lime-900/40">
-            <Text className="text-3xl font-bold text-lime-700 dark:text-lime-400">
-              {(data.first_name?.[0] ?? '?').toUpperCase()}
-              {(data.last_name?.[0] ?? '').toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <View className="flex-row">
+          <Photo uri={data.photo} initials={initials} />
 
-        <Text className="mt-3 text-center text-xl font-bold text-gray-800 dark:text-white">
-          {fullName}
-        </Text>
+          <View className="ml-4 flex-1 justify-between">
+            <View>
+              <Text className="text-xl font-bold text-gray-900 dark:text-white">
+                {fullName}
+              </Text>
+              <View className="mt-2 flex-row flex-wrap">
+                <Chip text={`Age ${data.age ?? '—'}`} />
+                <Chip text={data.zone?.zone_name ?? 'No zone'} />
+              </View>
+            </View>
 
-        <View className="mt-2 flex-row flex-wrap justify-center gap-2">
-          <View className="rounded-full bg-lime-100 px-3 py-1 dark:bg-lime-900/40">
-            <Text className="text-xs font-bold text-lime-700 dark:text-lime-400">
-              Age {data.age ?? '—'}
-            </Text>
-          </View>
-          <View className="rounded-full bg-lime-100 px-3 py-1 dark:bg-lime-900/40">
-            <Text className="text-xs font-bold text-lime-700 dark:text-lime-400">
-              {data.zone?.zone_name ?? 'No zone'}
-            </Text>
+            <View className="flex-row items-end">
+              <Text className="text-3xl font-bold text-[#5D8736] dark:text-lime-400">
+                {reports.length}
+              </Text>
+              <Text className="mb-1 ml-1.5 text-sm text-gray-500 dark:text-gray-400">
+                {reports.length === 1
+                  ? 'violation record'
+                  : 'violation records'}
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View className="mt-4 w-full flex-row items-start border-t border-gray-100 pt-4 dark:border-slate-700">
+        <View className="mt-4 flex-row items-start border-t border-gray-100 pt-4 dark:border-slate-700">
           <View className="mr-3 pt-0.5">
-            <Icon name="map-pin" tone="lime" size={18} />
+            <Icon name="map-pin" color={GREEN} size={18} />
           </View>
           <View className="flex-1">
-            <Text className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <Text className="text-xs text-gray-500 dark:text-gray-400">
               Address
             </Text>
             <Text className="text-[15px] text-gray-800 dark:text-white">
@@ -181,61 +305,24 @@ const ViolatorsDetails = () => {
       {/* Records */}
       <Enter
         index={1}
-        className="mb-2 flex-row items-center justify-between px-1"
+        className="mb-3 flex-row items-center justify-between px-1"
       >
-        <Text className="text-[15px] font-bold text-gray-800 dark:text-white">
+        <Text className="text-lg font-bold text-gray-900 dark:text-white">
           Violation records
         </Text>
-        <View className="rounded-full bg-lime-100 px-2.5 py-0.5 dark:bg-lime-900/40">
-          <Text className="text-xs font-bold text-lime-700 dark:text-lime-400">
-            {reports.length}
-          </Text>
+        <View className="rounded-lg bg-[#5D8736] px-2.5 py-0.5">
+          <Text className="text-xs font-bold text-white">{reports.length}</Text>
         </View>
       </Enter>
 
       {reports.length > 0 ? (
-        reports.map((report: Report, i: number) => {
-          const date = formatDate(report.date);
-          const time = formatTime(report.time);
-
-          return (
-            <Enter
-              key={report.id}
-              index={i + 2}
-              className="mb-3 rounded-xl border-l-4 border-lime-600 bg-white p-4 dark:bg-slate-800"
-              style={{ elevation: 2 }}
-            >
-              <Text className="text-base font-bold text-gray-800 dark:text-white">
-                Report #{report.id}
-              </Text>
-              <Text
-                className="mt-1 text-sm text-gray-600 dark:text-gray-300"
-                numberOfLines={3}
-              >
-                {report.report_description || 'No description provided.'}
-              </Text>
-
-              <View className="mt-3 flex-row flex-wrap items-center gap-x-4 gap-y-1">
-                <View className="flex-row items-center">
-                  <Icon name="calendar" tone="muted" size={14} />
-                  <Text className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {date ?? 'No date'}
-                  </Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Icon name="clock" tone="muted" size={14} />
-                  <Text className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {time ?? 'No time'}
-                  </Text>
-                </View>
-              </View>
-            </Enter>
-          );
-        })
+        reports.map((report: Report, i: number) => (
+          <RecordCard key={report.id} report={report} index={i + 2} />
+        ))
       ) : (
         <Enter
           index={2}
-          className="items-center rounded-xl bg-white p-8 dark:bg-slate-800"
+          className="items-center rounded-3xl bg-white p-8 dark:bg-slate-800"
         >
           <Image
             source={require('../../assets/img/Barangay.png')}

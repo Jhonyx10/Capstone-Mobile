@@ -1,14 +1,9 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import useAppStore from '../../store/useAppStore';
 
-// Paths are relative to base_url (".../api/"). If your routes sit inside a
-// prefix group on the backend, add the prefix here (e.g. 'analytics/months-current-previous').
-export const ENDPOINTS = {
-  months: 'months-current-previous',
-  responseTime: 'average-response-time',
-  requests: 'total-requests',
-  residents: 'registered-users',
-};
+// Path is relative to base_url (".../api/"). One request returns everything
+// the home screen needs, already scoped to the logged-in tanod's group.
+export const ENDPOINT = 'tanod/analytics';
 
 type Num = number | string | null;
 
@@ -36,60 +31,80 @@ export type ResidentsTotal = {
   monthly_registered: Num;
 };
 
-const getJson = async <T>(
+export type Insights = {
+  /** reports filed by the group on each of the last 7 days */
+  weekly_trend: { labels: string[]; data: number[] };
+  top_categories: { category: string; total: number; percentage: number }[];
+  busiest_hour: { hour: number; total: number; label: string } | null;
+  response_summary: {
+    responses: number;
+    fastest: Num;
+    slowest: Num;
+    average_distance: Num;
+  };
+  /** unanswered resident requests from the last 24 hours */
+  pending_requests: { count: number; oldest_minutes: number | null };
+  leaderboard: {
+    user_id: number;
+    name: string;
+    reports: number;
+    is_me: boolean;
+  }[];
+  recent_reports: {
+    id: number;
+    description: string | null;
+    category: string | null;
+    zone: string | null;
+    created_at: string | null;
+  }[];
+};
+
+export type HomeAnalytics = {
+  reports: MonthsCurPrev;
+  response_time: ResponseTime;
+  requests: RequestsTotal;
+  residents: ResidentsTotal;
+} & Insights;
+
+const getHomeAnalytics = async (
   base_url: string,
   token: string,
-  path: string,
-): Promise<T> => {
-  const res = await fetch(`${base_url}${path}`, {
+): Promise<HomeAnalytics> => {
+  const res = await fetch(`${base_url}${ENDPOINT}`, {
     headers: {
       Accept: 'application/json',
       Authorization: `Bearer ${token}`,
     },
   });
-  if (!res.ok) throw new Error(`${path} failed (${res.status})`);
-  return res.json();
+  if (!res.ok) throw new Error(`${ENDPOINT} failed (${res.status})`);
+  const json = await res.json();
+  return json.data;
 };
 
 const useHomeAnalytics = () => {
   const base_url = useAppStore(state => state.base_url);
   const token = useAppStore(state => state.token);
+  // the numbers belong to this tanod's group, so cache them per user
+  const userId = useAppStore(state => state.user?.id);
 
-  const results = useQueries({
-    queries: [
-      {
-        queryKey: ['home-analytics', 'months'],
-        queryFn: () => getJson<MonthsCurPrev>(base_url, token, ENDPOINTS.months),
-      },
-      {
-        queryKey: ['home-analytics', 'response-time'],
-        queryFn: () =>
-          getJson<ResponseTime>(base_url, token, ENDPOINTS.responseTime),
-      },
-      {
-        queryKey: ['home-analytics', 'requests'],
-        queryFn: () =>
-          getJson<RequestsTotal>(base_url, token, ENDPOINTS.requests),
-      },
-      {
-        queryKey: ['home-analytics', 'residents'],
-        queryFn: () =>
-          getJson<ResidentsTotal>(base_url, token, ENDPOINTS.residents),
-      },
-    ],
+  const { data, isLoading, isError, isRefetching, refetch } = useQuery({
+    queryKey: ['home-analytics', userId],
+    queryFn: () => getHomeAnalytics(base_url, token),
+    enabled: !!token,
   });
 
-  const [months, responseTime, requests, residents] = results;
-
+  // same names HomeScreen already uses, so the screen needs no changes
   return {
-    months: months.data,
-    responseTime: responseTime.data,
-    requests: requests.data,
-    residents: residents.data,
-    isLoading: results.some(r => r.isLoading),
-    isError: results.some(r => r.isError),
-    isRefetching: results.some(r => r.isRefetching),
-    refetch: () => Promise.all(results.map(r => r.refetch())),
+    months: data?.reports,
+    responseTime: data?.response_time,
+    requests: data?.requests,
+    residents: data?.residents,
+    // everything else on the home screen (charts, lists, alerts)
+    insights: data,
+    isLoading,
+    isError,
+    isRefetching,
+    refetch,
   };
 };
 

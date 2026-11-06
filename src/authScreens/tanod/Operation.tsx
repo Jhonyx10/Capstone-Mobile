@@ -11,7 +11,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import useAppStore from '../../../store/useAppStore';
 import { getOperations } from '../../../util/getOperations';
 import {
@@ -28,11 +28,74 @@ import type { RootStackParamList } from '../../Navigation';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Filter = 'all' | OperationStatus;
 
-const ACCENT: Record<OperationStatus, string> = {
-  upcoming: 'bg-blue-500',
-  active: 'bg-lime-500',
-  completed: 'bg-gray-400',
-  suspended: 'bg-amber-500',
+// App theme color
+const THEME = '#5D8736';
+
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+// Date tile colors per status: theme green for live/upcoming work,
+// neutral for finished, amber for suspended.
+const TILE: Record<OperationStatus, { box: string; text: string }> = {
+  upcoming: {
+    box: 'bg-[#5D8736]/10 dark:bg-[#5D8736]/25',
+    text: 'text-[#5D8736] dark:text-lime-400',
+  },
+  active: {
+    box: 'bg-[#5D8736]',
+    text: 'text-white',
+  },
+  completed: {
+    box: 'bg-gray-100 dark:bg-slate-700',
+    text: 'text-gray-500 dark:text-gray-300',
+  },
+  suspended: {
+    box: 'bg-amber-100 dark:bg-amber-900/30',
+    text: 'text-amber-700 dark:text-amber-400',
+  },
+};
+
+const getDateParts = (value?: string | null) => {
+  if (!value) return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return { month: MONTHS[d.getMonth()], day: d.getDate() };
+};
+
+const DateTile = ({ item }: { item: Operation }) => {
+  const parts = getDateParts(item.event_date);
+  const tone = TILE[item.status] ?? TILE.completed;
+
+  return (
+    <View
+      className={`h-16 w-16 items-center justify-center rounded-2xl ${tone.box}`}
+    >
+      {parts ? (
+        <>
+          <Text className={`text-xs font-semibold ${tone.text}`}>
+            {parts.month}
+          </Text>
+          <Text className={`text-2xl font-bold leading-7 ${tone.text}`}>
+            {parts.day}
+          </Text>
+        </>
+      ) : (
+        <Icon name="calendar" tone="muted" size={22} />
+      )}
+    </View>
+  );
 };
 
 const MetaRow = ({
@@ -69,44 +132,52 @@ const OperationCard = ({
     <Enter index={index} skip={index > 8}>
       <Pressable
         onPress={onPress}
-        className="mb-3 flex-row overflow-hidden rounded-2xl border border-gray-100 bg-white active:opacity-80 dark:border-slate-700 dark:bg-slate-800"
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${item.name}`}
+        className="mb-3 flex-row rounded-3xl bg-white p-4 active:opacity-80 dark:bg-slate-800"
+        style={{
+          shadowColor: THEME,
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 3,
+        }}
       >
-        <View className={`w-1.5 ${ACCENT[item.status] ?? 'bg-gray-400'}`} />
-        <View className="flex-1 p-4">
+        <DateTile item={item} />
+
+        <View className="ml-4 flex-1">
           <View className="flex-row items-start justify-between">
-            <Text className="mr-3 flex-1 text-lg font-bold text-gray-900 dark:text-white">
+            <Text
+              numberOfLines={2}
+              className="mr-2 flex-1 text-base font-bold text-gray-900 dark:text-white"
+            >
               {item.name}
             </Text>
             <StatusPill status={item.status} />
           </View>
 
-          <View className="mt-1 flex-row items-center">
-            <Icon name="calendar" tone="muted" size={14} />
-            <Text className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-              {date ?? 'Date not set'}
-            </Text>
-            {countdown ? (
-              <View className="ml-2 rounded-full bg-lime-100 px-2 py-0.5 dark:bg-lime-900/40">
-                <Text className="text-[11px] font-semibold text-lime-700 dark:text-lime-400">
-                  {countdown}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
+          <MetaRow icon="calendar" text={date ?? 'Date not set'} />
           <MetaRow
             icon="map-pin"
             text={item.zone?.zone_name ?? 'No zone assigned'}
           />
 
-          <View className="mt-1.5 flex-row items-center justify-between">
+          <View className="mt-3 flex-row items-center justify-between border-t border-gray-100 pt-3 dark:border-slate-700">
             <View className="flex-row items-center">
               <Icon name="layers" tone="muted" size={14} />
-              <Text className="ml-2 text-sm text-gray-600 dark:text-gray-300">
+              <Text className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">
                 {areas} {areas === 1 ? 'area' : 'areas'}
               </Text>
             </View>
-            <Icon name="chevron-right" tone="muted" size={20} />
+
+            <View className="flex-row items-center">
+              {countdown ? (
+                <Text className="mr-1 text-xs font-semibold text-[#5D8736] dark:text-lime-400">
+                  {countdown}
+                </Text>
+              ) : null}
+              <Icon name="chevron-right" tone="muted" size={18} />
+            </View>
           </View>
         </View>
       </Pressable>
@@ -116,7 +187,6 @@ const OperationCard = ({
 
 const OperationScreen = () => {
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const token = useAppStore(s => s.token);
   const base_url = useAppStore(s => s.base_url);
   const [filter, setFilter] = useState<Filter>('all');
@@ -149,78 +219,28 @@ const OperationScreen = () => {
     ['all', 'upcoming', 'active', 'completed', 'suspended'] as Filter[]
   ).filter(f => f === 'all' || (counts[f] ?? 0) > 0);
 
+  // Top bar follows the ReportScreen header: white bar, bottom border,
+  // title + count on the left. The filters sit inside the same bar.
   const Header = (
-    <Enter from="top" index={0}>
-      <View className="flex-row items-center px-4 pb-3 pt-2">
+    <View className="border-b border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <Enter from="top" className="flex-row items-center px-4 py-3">
         <Pressable
           onPress={() => navigation.goBack()}
           accessibilityLabel="Go back"
-          className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-white active:opacity-80 dark:bg-slate-800"
+          className="mr-3 h-10 w-10 items-center justify-center rounded-lg bg-[#5D8736]/10 active:opacity-80 dark:bg-[#5D8736]/25"
         >
-          <Icon name="chevron-left" tone="neutral" size={22} />
+          <Icon name="chevron-left" color={THEME} size={22} />
         </Pressable>
         <View>
-          <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+          <Text className="text-xl font-bold text-gray-800 dark:text-white">
             Operations
           </Text>
           <Text className="text-xs text-gray-500 dark:text-gray-400">
             {operations.length}{' '}
-            {operations.length === 1 ? 'operation' : 'operations'}
+            {operations.length === 1 ? 'operation' : 'operations'} in total
           </Text>
         </View>
-      </View>
-    </Enter>
-  );
-
-  if (isLoading) {
-    return (
-      <View
-        className="flex-1 bg-gray-50 dark:bg-slate-900"
-        style={{ paddingTop: insets.top }}
-      >
-        {Header}
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
-      </View>
-    );
-  }
-
-  if (isError) {
-    return (
-      <View
-        className="flex-1 bg-gray-50 dark:bg-slate-900"
-        style={{ paddingTop: insets.top }}
-      >
-        {Header}
-        <View className="flex-1 items-center justify-center px-8">
-          <Icon name="alert-triangle" color="#F59E0B" size={36} />
-          <Text className="mt-3 text-center text-base text-gray-700 dark:text-gray-200">
-            Couldn't load operations. Check your connection and try again.
-          </Text>
-          <Pressable
-            onPress={() => refetch()}
-            className="mt-4 flex-row items-center rounded-full bg-[#5D8736] px-5 py-3 active:opacity-80"
-          >
-            <Icon
-              name="refresh-cw"
-              size={16}
-              strokeWidth={2.4}
-              color="#FFFFFF"
-            />
-            <Text className="ml-2 font-semibold text-white">Try again</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View
-      className="flex-1 bg-gray-50 dark:bg-slate-900"
-      style={{ paddingTop: insets.top }}
-    >
-      {Header}
+      </Enter>
 
       {operations.length > 0 && (
         <Enter index={1}>
@@ -235,15 +255,15 @@ const OperationScreen = () => {
                 <Pressable
                   key={f}
                   onPress={() => setFilter(f)}
-                  className={`mr-2 rounded-full px-4 py-2 ${
-                    on
-                      ? 'bg-[#5D8736]'
-                      : 'border border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800'
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  className={`mr-2 rounded-lg px-4 py-2 ${
+                    on ? 'bg-[#5D8736]' : 'bg-gray-100 dark:bg-slate-800'
                   }`}
                 >
                   <Text
-                    className={`text-sm font-semibold ${
-                      on ? 'text-white' : 'text-gray-700 dark:text-gray-200'
+                    className={`text-sm font-bold ${
+                      on ? 'text-white' : 'text-gray-600 dark:text-gray-300'
                     }`}
                   >
                     {f === 'all' ? 'All' : STATUS_STYLES[f].label}{' '}
@@ -255,19 +275,75 @@ const OperationScreen = () => {
           </ScrollView>
         </Enter>
       )}
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        className="flex-1 bg-[#f4f4f4] dark:bg-slate-900"
+        edges={['top']}
+      >
+        {Header}
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={THEME} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView
+        className="flex-1 bg-[#f4f4f4] dark:bg-slate-900"
+        edges={['top']}
+      >
+        {Header}
+        <View className="flex-1 items-center justify-center px-8">
+          <Icon name="alert-triangle" color="#F59E0B" size={36} />
+          <Text className="mt-3 text-center text-base text-gray-700 dark:text-gray-200">
+            Couldn't load operations. Check your connection and try again.
+          </Text>
+          <Pressable
+            onPress={() => refetch()}
+            className="mt-4 flex-row items-center rounded-lg bg-[#5D8736] px-5 py-3 active:opacity-80"
+          >
+            <Icon
+              name="refresh-cw"
+              size={16}
+              strokeWidth={2.4}
+              color="#FFFFFF"
+            />
+            <Text className="ml-2 font-bold text-white">Try again</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView
+      className="flex-1 bg-[#f4f4f4] dark:bg-slate-900"
+      edges={['top']}
+    >
+      {Header}
 
       <FlatList
         data={visible}
         keyExtractor={o => String(o.id)}
         contentContainerStyle={{
           padding: 16,
-          paddingTop: 4,
           paddingBottom: 100,
           flexGrow: 1,
         }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={THEME}
+            colors={[THEME]}
+          />
         }
         ListEmptyComponent={
           <Enter index={2} className="flex-1 items-center justify-center px-8">
@@ -294,7 +370,7 @@ const OperationScreen = () => {
           />
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
