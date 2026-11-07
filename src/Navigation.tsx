@@ -15,7 +15,7 @@ import ViolatorScreen from './authScreens/tanod/ViolatorScreen';
 import MapScreen from './authScreens/tanod/MapScreen';
 import OperationScreen from './authScreens/tanod/Operation';
 import Home from './authScreens/resident/HomeScreen';
-import Hotline from './authScreens/resident/Hotline';
+import Hotline from './authScreens/public/Hotline';
 
 import CreateViolatorProfile from './components/violators/CreateViolatorProfile';
 import ReportForm from './components/reports/ReportForm';
@@ -36,7 +36,7 @@ import { useRef } from 'react';
 import { View, Text, StatusBar } from 'react-native';
 import { useColorScheme } from 'nativewind';
 
-import WatchList from './authScreens/tanod/WatchList';
+import WatchList from './authScreens/public/WatchList';
 import WatchListDetails from './components/operations/WatchListDetails';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -50,14 +50,14 @@ export type RootStackParamList = {
   authTabs: undefined;
   report: undefined;
   violator: undefined;
-  violator_form: undefined;
+  violator_form: { selectAfterCreate?: boolean } | undefined;
   camera: { status: string };
   report_form: undefined;
   violators_details: { id: number };
   report_details: { id: number };
   violators_list: undefined;
   map: undefined;
-  location_form: undefined;
+  location_form: { selectAfterCreate?: boolean } | undefined;
   response_tracker: { requestId: number };
   guest: undefined;
   operations: undefined;
@@ -168,7 +168,7 @@ if (user?.role === 'resident') {
           tabBarIcon: ({ focused }) => (
             <TabItem
               animation={require('./assets/animation/AddBar.json')}
-              label="Request"
+              label="Alert"
               focused={focused}
               rotate="46deg"
             />
@@ -182,7 +182,7 @@ if (user?.role === 'resident') {
           tabBarIcon: ({ focused }) => (
             <TabItem
               animation={require('./assets/animation/MenuBar.json')}
-              label="Watch list"
+              label="Watch"
               focused={focused}
             />
           ),
@@ -391,7 +391,112 @@ const Navigation = () => {
         )}
 
         {login ? (
-          <Stack.Screen name="authTabs" component={AuthTabs} />
+          <>
+            <Stack.Screen name="authTabs" component={AuthTabs} />
+            <Stack.Screen
+              name="violator_form"
+              component={CreateViolatorProfile}
+              options={{
+                presentation: 'modal',
+                animation: 'fade_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="camera"
+              component={CameraModal}
+              options={{
+                presentation: 'modal',
+                animation: 'fade_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="report_form"
+              component={ReportForm}
+              options={{
+                presentation: 'modal',
+                animation: 'fade_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="violators_details"
+              component={ViolatorsDetails}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="report_details"
+              component={ReportDetails}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="violators_list"
+              component={ReportViolatorsList}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="location_form"
+              component={LocationForm}
+              options={{
+                presentation: 'modal',
+                animation: 'fade_from_bottom',
+              }}
+            />
+
+            <Stack.Screen
+              name="response_tracker"
+              component={TanodTracker}
+              options={{
+                presentation: 'modal',
+                animation: 'fade_from_bottom',
+              }}
+            />
+
+            <Stack.Screen
+              name="operations"
+              component={OperationScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="operation_details"
+              component={OperationDetails}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="watchlists"
+              component={WatchList}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="watch_list_details"
+              component={WatchListDetails}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="hotline"
+              component={Hotline}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen name="welcome" component={Welcome} />
@@ -404,101 +509,6 @@ const Navigation = () => {
             />
           </>
         )}
-        <Stack.Screen
-          name="violator_form"
-          component={CreateViolatorProfile}
-          options={{
-            presentation: 'modal',
-            animation: 'fade_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="camera"
-          component={CameraModal}
-          options={{
-            presentation: 'modal',
-            animation: 'fade_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="report_form"
-          component={ReportForm}
-          options={{
-            presentation: 'modal',
-            animation: 'fade_from_bottom',
-          }}
-        />
-        <Stack.Screen
-          name="violators_details"
-          component={ViolatorsDetails}
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="report_details"
-          component={ReportDetails}
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="violators_list"
-          component={ReportViolatorsList}
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="location_form"
-          component={LocationForm}
-          options={{
-            presentation: 'modal',
-            animation: 'fade_from_bottom',
-          }}
-        />
-
-        <Stack.Screen
-          name="response_tracker"
-          component={TanodTracker}
-          options={{
-            presentation: 'modal',
-            animation: 'fade_from_bottom',
-          }}
-        />
-
-        <Stack.Screen
-          name="operations"
-          component={OperationScreen}
-          options={{ animation: 'slide_from_right' }}
-        />
-        <Stack.Screen
-          name="operation_details"
-          component={OperationDetails}
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="watchlists"
-          component={WatchList}
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="watch_list_details"
-          component={WatchListDetails}
-          options={{
-            presentation: 'modal',
-            animation: 'slide_from_right',
-          }}
-        />
       </Stack.Navigator>
     </NavigationContainer>
   );

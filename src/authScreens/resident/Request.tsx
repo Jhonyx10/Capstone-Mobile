@@ -10,6 +10,7 @@ import { useColorScheme } from 'nativewind';
 import { useState, useEffect } from 'react';
 import Mapbox, { MapView } from '@rnmapbox/maps';
 import RequestLocation from '../../components/maps/RequestLocation';
+import RequestGeofenceLayer from '../../components/maps/RequestGeofenceLayer';
 import RequestForm from '../../components/request/RequestForm';
 import Icon from '../../components/Icon';
 import Enter from '../../components/Enter';
@@ -60,6 +61,8 @@ const Request = () => {
         compassEnabled={false}
         scaleBarEnabled={false}
       >
+        {/* existing incident requests + their 50 m geofences */}
+        <RequestGeofenceLayer />
         <RequestLocation onLocationChange={setUserCoords} />
       </MapView>
 

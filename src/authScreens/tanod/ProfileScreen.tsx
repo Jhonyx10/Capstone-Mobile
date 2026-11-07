@@ -205,6 +205,7 @@ console.log('USER', JSON.stringify(user));
   const handleUpdateAccount = () => {};
   const goToOperations = () => navigation.navigate('operations');
   const goToWatchlist = () => navigation.navigate('watchlists');
+  const goToHotline = () => navigation.navigate('hotline');
   const goToPerformanceReview = () => {};
 
   const initials = (user?.name ?? '?')
@@ -313,9 +314,20 @@ console.log('USER', JSON.stringify(user));
             </TouchableOpacity>
           </Section>
         </Enter>
-
+        <Enter
+          index={2}
+          className="mb-4 overflow-hidden rounded-xl bg-white dark:bg-slate-800"
+        >
+          <NavRow
+            icon="alert-triangle"
+            title="Emergency hotline"
+            subtitle="Numbers to call in an emergency"
+            onPress={goToHotline}
+            last
+          />
+        </Enter>
         {/* Settings */}
-        <Enter index={2}>
+        <Enter index={3}>
           <Section title="Settings" tight>
             <View className="flex-row items-center justify-between">
               <View className="flex-1 flex-row items-center pr-3">
@@ -341,7 +353,7 @@ console.log('USER', JSON.stringify(user));
 
         {/* Navigation shortcuts */}
         <Enter
-          index={3}
+          index={4}
           className="mb-4 overflow-hidden rounded-xl bg-white dark:bg-slate-800"
         >
           <NavRow
@@ -366,7 +378,7 @@ console.log('USER', JSON.stringify(user));
         </Enter>
 
         {/* Log out */}
-        <Enter index={4}>
+        <Enter index={5}>
           <LogoutBtn />
         </Enter>
       </ScrollView>

@@ -9,11 +9,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useColorScheme } from 'nativewind';
 import useAppStore from '../../../store/useAppStore';
 import useInvolveViolator from '../../../store/useInvolveViolatorState';
 import { Violator } from '../../types/ViolatorType';
+import { RootStackParamList } from '../../Navigation';
 import Enter from '../Enter';
+
+type ViolatorsListNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'violators_list'
+>;
 
 // only the first rows play the entrance; rows that mount while scrolling don't
 const ANIMATED_ROWS = 10;
@@ -21,7 +28,7 @@ const ANIMATED_ROWS = 10;
 const ReportViolatorsList = () => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const navigation = useNavigation();
+  const navigation = useNavigation<ViolatorsListNavigationProp>();
 
   const { violators } = useAppStore();
   const involveViolator = useInvolveViolator(state => state.involveViolator);
@@ -42,6 +49,10 @@ const ReportViolatorsList = () => {
   const handleAddViolator = (violator: Violator) => {
     setInvolveViolator(violator);
   };
+
+  // opens the create form; the new violator is selected automatically on save
+  const handleCreateNew = () =>
+    navigation.navigate('violator_form', { selectAfterCreate: true });
 
   const renderItem = ({
     item: violator,
@@ -140,6 +151,17 @@ const ReportViolatorsList = () => {
           placeholderTextColor={isDark ? '#94A3B8' : '#9CA3AF'}
           className="mt-3 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-[15px] text-gray-800 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
         />
+
+        {/* No record yet? create one right here */}
+        <TouchableOpacity
+          onPress={handleCreateNew}
+          activeOpacity={0.8}
+          className="mt-2 items-center rounded-lg border border-dashed border-lime-600 py-2.5"
+        >
+          <Text className="text-sm font-semibold text-lime-700 dark:text-lime-400">
+            Not on the list? + Add new violator
+          </Text>
+        </TouchableOpacity>
       </Enter>
 
       {/* List */}
@@ -158,9 +180,18 @@ const ReportViolatorsList = () => {
             </Text>
             <Text className="mt-1 text-center text-sm text-gray-500 dark:text-gray-400">
               {violators.length === 0
-                ? 'Violators you add in the Violators tab will show up here.'
-                : 'Try a different name.'}
+                ? 'Add the first violator to include them in this report.'
+                : 'Try a different name, or add them as a new violator.'}
             </Text>
+            <TouchableOpacity
+              onPress={handleCreateNew}
+              activeOpacity={0.8}
+              className="mt-4 rounded-full bg-lime-600 px-5 py-2.5"
+            >
+              <Text className="text-sm font-bold text-white">
+                + Add new violator
+              </Text>
+            </TouchableOpacity>
           </Enter>
         }
       />

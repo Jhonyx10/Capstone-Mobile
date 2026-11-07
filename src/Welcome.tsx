@@ -43,51 +43,49 @@ const Welcome = () => {
     null,
   );
 
-  const handleGuestLogin = async () => {
-    setGuestLoading(true);
-    let phone: string | null = null;
+const handleGuestLogin = async () => {
+  let phone: string | null = null;
 
-    try {
-      // opens Google's phone number picker
-      phone = await pickPhoneNumber();
-      if (!phone) {
-        Alert.alert(
-          'Walang napili',
-          'Pumili ng mobile number para magpatuloy.',
-        );
-        return;
-      }
-
-      const secret = await getSecret(phone);
-      const data = await residentLogin(base_url, phone, secret);
-
-      if (data.status === 'pending') {
-        Alert.alert(
-          'Hinihintay ang approval',
-          'Sinusuri pa ng barangay ang iyong registration. Subukan ulit mamaya.',
-        );
-      } else if (data.status === 'rejected') {
-        Alert.alert(
-          'Na-reject ang registration',
-          data.reject_reason ?? 'Subukang mag-register ulit.',
-        );
-      } else {
-        setToken(data.token);
-        setUser(data.user);
-        setLogin(true);
-        setOnboarding(false);
-        // no navigate needed: Navigation.tsx switches to 'authTabs' once login is true
-      }
-    } catch (e: any) {
-      if (e instanceof ApiError && e.code === 'NOT_REGISTERED') {
-        setUnregisteredPhone(phone); // opens the "not registered" modal
-      } else {
-        Alert.alert('Hindi makapag-login', e.message ?? 'Subukan ulit.');
-      }
-    } finally {
-      setGuestLoading(false);
+  try {
+    // opens Google's phone number picker (no spinner yet)
+    phone = await pickPhoneNumber();
+    if (!phone) {
+      Alert.alert('Walang napili', 'Pumili ng mobile number para magpatuloy.');
+      return;
     }
-  };
+
+    // a number was chosen, so now we're actually logging in
+    setGuestLoading(true);
+
+    const secret = await getSecret(phone);
+    const data = await residentLogin(base_url, phone, secret);
+
+    if (data.status === 'pending') {
+      Alert.alert(
+        'Hinihintay ang approval',
+        'Sinusuri pa ng barangay ang iyong registration. Subukan ulit mamaya.',
+      );
+    } else if (data.status === 'rejected') {
+      Alert.alert(
+        'Na-reject ang registration',
+        data.reject_reason ?? 'Subukang mag-register ulit.',
+      );
+    } else {
+      setToken(data.token);
+      setUser(data.user);
+      setLogin(true);
+      setOnboarding(false);
+    }
+  } catch (e: any) {
+    if (e instanceof ApiError && e.code === 'NOT_REGISTERED') {
+      setUnregisteredPhone(phone);
+    } else {
+      Alert.alert('Hindi makapag-login', e.message ?? 'Subukan ulit.');
+    }
+  } finally {
+    setGuestLoading(false);
+  }
+};
 
   const goToRegister = () => {
     const phone = unregisteredPhone;

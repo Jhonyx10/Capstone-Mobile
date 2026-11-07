@@ -3,6 +3,7 @@ import {
   View,
   Text,
   Image,
+  Modal,
   ScrollView,
   Pressable,
   ActivityIndicator,
@@ -35,6 +36,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'watch_list_details'>;
 
 const THEME = '#5D8736';
+const COLLAPSED_COUNT = 5; // history rows shown before "Show more"
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -51,15 +53,28 @@ const BackButton = ({ onPress }: { onPress: () => void }) => (
 const HeroChip = ({ icon, text }: { icon: IconName; text: string }) => (
   <View className="flex-row items-center rounded-full bg-white/20 px-3 py-1.5">
     <Icon name={icon} size={14} color="#FFFFFF" />
-    <Text className="ml-1.5 text-xs font-semibold text-white">{text}</Text>
+    <Text numberOfLines={1} className="ml-1.5 text-xs font-semibold text-white">
+      {text}
+    </Text>
   </View>
 );
 
-const Stat = ({ label, value }: { label: string; value: string }) => (
-  <View className="flex-1">
+const StatTile = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+}) => (
+  <View className="flex-1 rounded-2xl border border-gray-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+    <View className="h-8 w-8 items-center justify-center rounded-full bg-[#5D8736]/10 dark:bg-[#5D8736]/25">
+      <Icon name={icon} color={THEME} size={15} />
+    </View>
     <Text
       numberOfLines={1}
-      className="text-lg font-bold text-gray-900 dark:text-white"
+      className="mt-2 text-base font-bold text-gray-900 dark:text-white"
     >
       {value}
     </Text>
@@ -67,37 +82,60 @@ const Stat = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
-const SightingRow = ({
+const LegendDot = ({ color, label }: { color: string; label: string }) => (
+  <View className="ml-3 flex-row items-center">
+    <View
+      className="h-2.5 w-2.5 rounded-full"
+      style={{ backgroundColor: color }}
+    />
+    <Text className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
+      {label}
+    </Text>
+  </View>
+);
+
+const TimelineRow = ({
   s,
   selected,
+  last,
   onPress,
 }: {
   s: SightingPoint;
   selected: boolean;
+  last: boolean;
   onPress: () => void;
 }) => {
   const color = s.latest ? LATEST_COLOR : EARLIER_COLOR;
   const ago = timeAgo(s.at);
 
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Sighting ${s.n}, show on map`}
-      className={`mb-3 flex-row rounded-2xl border bg-white p-4 active:opacity-80 dark:bg-slate-800 ${
-        selected ? 'border-[#5D8736]' : 'border-gray-100 dark:border-slate-700'
-      }`}
-    >
-      <View
-        className="h-10 w-10 items-center justify-center rounded-full"
-        style={{ backgroundColor: color }}
-      >
-        <Text className="text-sm font-bold text-white">{s.n}</Text>
+    <View className="flex-row">
+      {/* rail */}
+      <View className="mr-3 items-center">
+        <View
+          className="h-9 w-9 items-center justify-center rounded-full"
+          style={{ backgroundColor: color }}
+        >
+          <Text className="text-xs font-bold text-white">{s.n}</Text>
+        </View>
+        {!last ? (
+          <View className="mt-1 w-0.5 flex-1 bg-gray-200 dark:bg-slate-700" />
+        ) : null}
       </View>
 
-      <View className="ml-3 flex-1">
+      {/* card */}
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Sighting ${s.n}, show on map`}
+        className={`mb-3 flex-1 rounded-2xl border bg-white p-3.5 active:opacity-80 dark:bg-slate-800 ${
+          selected
+            ? 'border-[#5D8736]'
+            : 'border-gray-100 dark:border-slate-700'
+        }`}
+      >
         <View className="flex-row items-center justify-between">
-          <Text className="mr-2 flex-1 text-base font-semibold text-gray-900 dark:text-white">
+          <Text className="mr-2 flex-1 text-[15px] font-semibold text-gray-900 dark:text-white">
             {formatDateTime(s.at)}
           </Text>
           {s.latest ? (
@@ -131,16 +169,25 @@ const SightingRow = ({
           </Text>
         ) : null}
 
-        {s.by ? (
-          <View className="mt-2 flex-row items-center self-start rounded-full bg-gray-100 px-2.5 py-1 dark:bg-slate-700">
-            <Icon name="user" tone="neutral" size={12} />
-            <Text className="ml-1 text-xs text-gray-700 dark:text-gray-200">
-              {s.by}
+        <View className="mt-2 flex-row items-center justify-between">
+          {s.by ? (
+            <View className="flex-row items-center rounded-full bg-gray-100 px-2.5 py-1 dark:bg-slate-700">
+              <Icon name="user" tone="neutral" size={12} />
+              <Text className="ml-1 text-xs text-gray-700 dark:text-gray-200">
+                {s.by}
+              </Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          {selected ? (
+            <Text className="text-xs font-semibold text-lime-700 dark:text-lime-400">
+              Showing on map
             </Text>
-          </View>
-        ) : null}
-      </View>
-    </Pressable>
+          ) : null}
+        </View>
+      </Pressable>
+    </View>
   );
 };
 
@@ -154,8 +201,9 @@ const WatchListDetails = () => {
   const mapY = useRef(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageOpen, setImageOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  
+  const [showAll, setShowAll] = useState(false);
 
   const {
     data: item,
@@ -221,6 +269,12 @@ const WatchListDetails = () => {
   const latest = sightings[0];
   const earliest = sightings[sightings.length - 1];
   const showImage = !!item.image_url && !imageFailed;
+  const isActive = item.status === 'active';
+
+  const visibleSightings = showAll
+    ? sightings
+    : sightings.slice(0, COLLAPSED_COUNT);
+  const hiddenCount = sightings.length - visibleSightings.length;
 
   const pick = (id: number | null) =>
     setSelectedId(prev => (id !== null && prev === id ? null : id));
@@ -235,15 +289,14 @@ const WatchListDetails = () => {
   };
 
   return (
-    <>
+    <View className="flex-1 bg-gray-50 dark:bg-slate-900">
       <ScrollView
         ref={scrollRef}
-        className="flex-1 bg-gray-50 dark:bg-slate-900"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           padding: 16,
           paddingTop: insets.top + 8,
-          paddingBottom: insets.bottom + 32,
+          paddingBottom: insets.bottom + 110, // clears the sticky report bar
         }}
       >
         {/* top bar */}
@@ -265,7 +318,12 @@ const WatchListDetails = () => {
             style={{ borderRadius: 20, padding: 16 }}
           >
             <View className="flex-row items-center">
-              <View className="h-20 w-20 overflow-hidden rounded-2xl bg-white/25">
+              <Pressable
+                onPress={() => setImageOpen(true)}
+                disabled={!showImage}
+                accessibilityLabel="View photo"
+                className="h-20 w-20 overflow-hidden rounded-2xl bg-white/25"
+              >
                 {showImage ? (
                   <Image
                     source={{ uri: item.image_url! }}
@@ -282,7 +340,7 @@ const WatchListDetails = () => {
                     />
                   </View>
                 )}
-              </View>
+              </Pressable>
 
               <View className="ml-4 flex-1">
                 <Text
@@ -291,11 +349,21 @@ const WatchListDetails = () => {
                 >
                   {item.identifier}
                 </Text>
-                <Text className="text-sm text-white/80">{cap(item.type)}</Text>
-                <View className="mt-2 self-start rounded-full bg-white/25 px-3 py-1">
-                  <Text className="text-xs font-bold text-white">
-                    {cap(item.status)}
-                  </Text>
+                <View className="mt-1.5 flex-row items-center">
+                  <View className="rounded-full bg-white/25 px-3 py-1">
+                    <Text className="text-xs font-bold text-white">
+                      {cap(item.type)}
+                    </Text>
+                  </View>
+                  <View
+                    className={`ml-2 rounded-full px-3 py-1 ${
+                      isActive ? 'bg-red-500' : 'bg-white/25'
+                    }`}
+                  >
+                    <Text className="text-xs font-bold text-white">
+                      {cap(item.status)}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
@@ -311,25 +379,53 @@ const WatchListDetails = () => {
                 <HeroChip icon="calendar" text={`Added ${added}`} />
               ) : null}
             </View>
+
+            {showImage ? (
+              <Text className="mt-3 text-xs text-white/70">
+                Tap the photo to enlarge it
+              </Text>
+            ) : null}
           </LinearGradient>
         </Enter>
-        <Enter index={2} className="mt-4">
-          <Pressable
-            onPress={() => setReportOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Report a sighting"
-            className="flex-row items-center justify-center rounded-2xl bg-[#5D8736] py-4 active:opacity-80"
+
+        {/* safety tip, only while the entry is still active */}
+        {isActive ? (
+          <Enter
+            index={2}
+            className="mt-4 rounded-2xl border border-red-100 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-900/20"
           >
-            <Icon name="map-pin" size={18} strokeWidth={2.4} color="#FFFFFF" />
-            <Text className="ml-2 text-base font-bold text-white">
-              Report a sighting
+            <View className="flex-row items-center">
+              <Icon name="shield" color="#EF4444" size={18} />
+              <Text className="ml-2 text-base font-semibold text-red-900 dark:text-red-200">
+                Spotted this {item.type}?
+              </Text>
+            </View>
+            <Text className="mt-1.5 text-sm text-red-900/80 dark:text-red-200/80">
+              Don't approach or confront. Report where you saw it, and call the
+              hotline if you feel unsafe.
             </Text>
-          </Pressable>
-        </Enter>
+            <Pressable
+              onPress={() => navigation.navigate('hotline')}
+              accessibilityRole="button"
+              className="mt-3 flex-row items-center self-start rounded-full bg-red-500 px-4 py-2 active:opacity-80"
+            >
+              <Icon
+                name="alert-triangle"
+                size={14}
+                strokeWidth={2.4}
+                color="#FFFFFF"
+              />
+              <Text className="ml-1.5 text-sm font-bold text-white">
+                Emergency hotlines
+              </Text>
+            </Pressable>
+          </Enter>
+        ) : null}
+
         {/* reason */}
         {item.reason ? (
           <Enter
-            index={2}
+            index={3}
             className="mt-4 flex-row rounded-2xl border border-gray-100 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
           >
             <View className="h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
@@ -346,31 +442,23 @@ const WatchListDetails = () => {
           </Enter>
         ) : null}
 
-        {/* sightings summary */}
-        <Enter
-          index={3}
-          className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
-        >
-          <View className="mb-3 flex-row items-center">
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-[#5D8736]/10 dark:bg-[#5D8736]/25">
-              <Icon name="clock" color={THEME} size={16} />
-            </View>
-            <Text className="ml-2 text-base font-semibold text-gray-900 dark:text-white">
-              Sightings
-            </Text>
-          </View>
-          <View className="flex-row">
-            <Stat
-              label="Total"
+        {/* stats */}
+        <Enter index={4} className="mt-4">
+          <View className="flex-row" style={{ gap: 10 }}>
+            <StatTile
+              icon="eye"
+              label="Sightings"
               value={String(
                 Math.max(sightings.length, item.sightings_count ?? 0),
               )}
             />
-            <Stat
+            <StatTile
+              icon="clock"
               label="Last seen"
               value={timeAgo(latest?.at ?? null) ?? '-'}
             />
-            <Stat
+            <StatTile
+              icon="calendar"
               label="First seen"
               value={earliest?.at ? formatEventDate(earliest.at) ?? '-' : '-'}
             />
@@ -378,7 +466,7 @@ const WatchListDetails = () => {
         </Enter>
 
         {sightings.length === 0 ? (
-          <Enter index={4}>
+          <Enter index={5}>
             <View className="mt-4 items-center rounded-2xl bg-white p-6 dark:bg-slate-800">
               <Icon name="map" size={28} tone="muted" />
               <Text className="mt-2 text-base font-semibold text-gray-800 dark:text-white">
@@ -386,7 +474,7 @@ const WatchListDetails = () => {
               </Text>
               <Text className="mt-1 text-center text-sm text-gray-500 dark:text-gray-400">
                 When this {item.type} is spotted, each location will appear on a
-                map here.
+                map here. Be the first to report one.
               </Text>
             </View>
           </Enter>
@@ -394,12 +482,21 @@ const WatchListDetails = () => {
           <>
             {/* map */}
             <Enter
-              index={4}
-              className="mt-4"
+              index={5}
+              className="mt-6"
               onLayout={e => {
                 mapY.current = e.nativeEvent.layout.y;
               }}
             >
+              <View className="mb-2 flex-row items-center justify-between">
+                <Text className="text-lg font-bold text-gray-900 dark:text-white">
+                  Where it was seen
+                </Text>
+                <View className="flex-row items-center">
+                  <LegendDot color={LATEST_COLOR} label="Latest" />
+                  <LegendDot color={EARLIER_COLOR} label="Earlier" />
+                </View>
+              </View>
               <SightingsMap
                 sightings={sightings}
                 selectedId={selectedId}
@@ -408,8 +505,8 @@ const WatchListDetails = () => {
             </Enter>
 
             {/* history */}
-            <Enter index={5}>
-              <View className="mb-1 mt-6 flex-row items-center justify-between">
+            <Enter index={6}>
+              <View className="mb-3 mt-6 flex-row items-end justify-between">
                 <Text className="text-lg font-bold text-gray-900 dark:text-white">
                   History
                 </Text>
@@ -419,27 +516,93 @@ const WatchListDetails = () => {
               </View>
             </Enter>
 
-            <View className="mt-2">
-              {sightings.map((s, i) => (
-                <Enter key={s.id} index={6 + i} skip={i > 4}>
-                  <SightingRow
+            <View>
+              {visibleSightings.map((s, i) => (
+                <Enter key={s.id} index={7 + i} skip={i > 3}>
+                  <TimelineRow
                     s={s}
                     selected={s.id === selectedId}
+                    last={
+                      i === visibleSightings.length - 1 && hiddenCount === 0
+                    }
                     onPress={() => pickFromList(s.id)}
                   />
                 </Enter>
               ))}
             </View>
+
+            {sightings.length > COLLAPSED_COUNT ? (
+              <Pressable
+                onPress={() => setShowAll(v => !v)}
+                accessibilityRole="button"
+                className="mt-1 items-center rounded-2xl border border-gray-100 bg-white py-3 active:opacity-80 dark:border-slate-700 dark:bg-slate-800"
+              >
+                <Text className="text-sm font-semibold text-lime-700 dark:text-lime-400">
+                  {showAll
+                    ? 'Show fewer'
+                    : `Show ${hiddenCount} more ${
+                        hiddenCount === 1 ? 'sighting' : 'sightings'
+                      }`}
+                </Text>
+              </Pressable>
+            ) : null}
           </>
         )}
       </ScrollView>
+
+      {/* sticky report bar */}
+      <View
+        pointerEvents="box-none"
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
+      >
+        <View
+          className="border-t border-gray-200 bg-white px-4 pt-3 dark:border-slate-700 dark:bg-slate-900"
+          style={{ paddingBottom: insets.bottom + 12 }}
+        >
+          <Pressable
+            onPress={() => setReportOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Report a sighting"
+            className="flex-row items-center justify-center rounded-2xl bg-[#5D8736] py-4 active:opacity-80"
+          >
+            <Icon name="map-pin" size={18} strokeWidth={2.4} color="#FFFFFF" />
+            <Text className="ml-2 text-base font-bold text-white">
+              Report a sighting
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
       <ReportSightingSheet
         visible={reportOpen}
         onClose={() => setReportOpen(false)}
         subjectId={item.id}
         subjectLabel={item.identifier}
       />
-    </>
+
+      {/* full-screen photo */}
+      <Modal
+        visible={imageOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setImageOpen(false)}
+      >
+        <Pressable
+          onPress={() => setImageOpen(false)}
+          className="flex-1 items-center justify-center bg-black/90 px-4"
+        >
+          {showImage ? (
+            <Image
+              source={{ uri: item.image_url! }}
+              resizeMode="contain"
+              style={{ width: '100%', height: '80%' }}
+            />
+          ) : null}
+          <Text className="mt-3 text-sm text-white/70">Tap to close</Text>
+        </Pressable>
+      </Modal>
+    </View>
   );
 };
 

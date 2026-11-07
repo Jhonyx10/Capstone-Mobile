@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -8,42 +9,32 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { Logout } from '../../util/Logout';
 import useAppStore from '../../store/useAppStore';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../Navigation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Mapbox from '@rnmapbox/maps';
 import echo from '../../echo';
 import Icon from './Icon';
 
-type LogoutScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'welcome'
->;
-
 const LogoutBtn = () => {
-  const navigation = useNavigation<LogoutScreenNavigationProp>();
   const setLogin = useAppStore(state => state.setLogin);
   const setUser = useAppStore(state => state.setUser);
   const setToken = useAppStore(state => state.setToken);
   const base_url = useAppStore(state => state.base_url);
-  const token = useAppStore(state => state.token); // ✅ grab token before stopping anything
+  const token = useAppStore(state => state.token); // grab token before clearing anything
+
+  // Stays true until this button unmounts (when the authenticated screens are
+  // removed), so the spinner never flips back to "Log out" mid-transition.
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const clearSession = async () => {
-    // Clear Zustand store
+    // Flip login first: the authenticated screens unmount right away,
+    // so they never re-render with an empty user/token.
+    // The navigator swaps to the welcome screen on its own, no navigation.reset needed.
     setLogin(false);
-    setUser({} as any);
+
+    await AsyncStorage.multiRemove(['token', 'user']);
+
     setToken('');
-
-    // Clear AsyncStorage
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
-
-    // Navigate to welcome screen
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'welcome' as never }],
-    });
+    setUser({} as any);
   };
 
   const LogoutMutation = useMutation({
@@ -53,7 +44,7 @@ const LogoutBtn = () => {
     },
     onError: async error => {
       console.log('Logout API failed:', error);
-      // Still clear session even if backend logout fails
+      // Still clear the session even if the backend logout fails
       await clearSession();
     },
   });
@@ -65,27 +56,31 @@ const LogoutBtn = () => {
         text: 'Log out',
         style: 'destructive',
         onPress: () => {
+          setLoggingOut(true);
+
           // stop streaming first
           Mapbox.locationManager.stop();
           echo.disconnect();
 
-          // ✅ call logout with saved token
+          // call logout with the saved token
           LogoutMutation.mutate({ base_url, token });
         },
       },
     ]);
   };
 
+  const busy = loggingOut || LogoutMutation.isPending;
+
   return (
     <TouchableOpacity
       onPress={handleLogout}
-      disabled={LogoutMutation.isPending}
+      disabled={busy}
       activeOpacity={0.8}
       className={`h-12 w-full flex-row items-center justify-center rounded-xl border border-red-500 bg-red-50 dark:bg-red-900/20 ${
-        LogoutMutation.isPending ? 'opacity-60' : ''
+        busy ? 'opacity-60' : ''
       }`}
     >
-      {LogoutMutation.isPending ? (
+      {busy ? (
         <ActivityIndicator color="#EF4444" />
       ) : (
         <>

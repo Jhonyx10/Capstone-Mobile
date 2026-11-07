@@ -13,10 +13,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useColorScheme } from 'nativewind';
 import useAppStore from '../../../store/useAppStore';
 import useCategories from '../../hooks/useCategory';
+import useDuplicateRequest from '../../hooks/useDuplicateRequest';
 import { sendRequest } from '../../../util/postRequest';
 import { RequestResponse } from '../../types/RequestResponseType';
 import { RootStackParamList } from '../../Navigation';
 import Icon from '../Icon';
+import DuplicateRequestModal from './DuplicateRequestModal';
 
 type ResponseTrackerScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -36,6 +38,11 @@ const RequestForm = ({ userCoords }: coordinateProps) => {
   const setStatus = useAppStore(state => state.setStatus);
   const { data: categories = [], isLoading } = useCategories();
   const [categoryId, setCategoryId] = useState('');
+
+  // duplicate-request geofence check
+  const { findDuplicate } = useDuplicateRequest();
+  const [checking, setChecking] = useState(false);
+  const [duplicate, setDuplicate] = useState<any | null>(null);
 
   // Icon / spinner colors take hex, not className
   const muted = isDark ? '#94A3B8' : '#64748B'; // slate-400 / slate-500
@@ -58,13 +65,25 @@ const RequestForm = ({ userCoords }: coordinateProps) => {
   });
 
   const canSubmit = !!user?.id && !!userCoords && !!categoryId;
-  const sending = requestMutation.isPending;
+  const sending = requestMutation.isPending || checking;
   const selectedName = categories.find(
     (c: any) => c.id.toString() === categoryId,
   )?.category_name;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit || sending || !user?.id || !userCoords) return;
+
+    setChecking(true);
+    try {
+      // blocks only if a request of the SAME category is within 50 m
+      const existing = await findDuplicate(userCoords, categoryId);
+      if (existing) {
+        setDuplicate(existing);
+        return;
+      }
+    } finally {
+      setChecking(false);
+    }
 
     requestMutation.mutate({
       user_id: user.id,
@@ -185,6 +204,11 @@ const RequestForm = ({ userCoords }: coordinateProps) => {
           {hint}
         </Text>
       </View>
+
+      <DuplicateRequestModal
+        visible={!!duplicate}
+        onClose={() => setDuplicate(null)}
+      />
     </View>
   );
 };

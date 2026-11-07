@@ -14,10 +14,11 @@ import { useCameraPermission } from 'react-native-vision-camera';
 import { useColorScheme } from 'nativewind';
 import useZones from '../../hooks/useZone';
 import { useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../Navigation';
 import usePhotoStore from '../../../store/usePhotoStore';
+import useNewLocationStore from '../../../store/useNewLocationStore';
 import { Zone } from '../../types/ZoneType';
 import { postLocation } from '../../../util/postLocation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -40,8 +41,13 @@ const LocationForm = () => {
   const { setLandmark } = usePhotoStore();
   const landmark = usePhotoStore(state => state.landmark);
   const navigation = useNavigation<CameraScreenNavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, 'location_form'>>();
   const { hasPermission, requestPermission } = useCameraPermission();
   const queryClient = useQueryClient();
+
+  // true when opened from the report form: select the new location on save
+  const selectAfterCreate = route.params?.selectAfterCreate ?? false;
+  const setNewLocation = useNewLocationStore(s => s.setNewLocation);
 
   const [formData, setFormData] = useState({
     zone_id: '',
@@ -68,7 +74,19 @@ const LocationForm = () => {
 
   const locationMutation = useMutation({
     mutationFn: postLocation,
-    onSuccess: () => {
+    onSuccess: (res: any, variables) => {
+      if (selectAfterCreate) {
+        // adjust these keys if your API wraps the created record differently
+        const body = res?.data ?? res;
+        const created = body?.data ?? body?.location ?? body;
+        if (created?.id != null) {
+          setNewLocation({
+            id: String(created.id),
+            zoneId: String(created.zone_id ?? variables.formData.zone_id),
+          });
+        }
+      }
+
       setFormData({
         zone_id: '',
         location_name: '',
